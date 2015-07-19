@@ -6,11 +6,13 @@ use16
 org 100h
 
 %idefine SaveAllRegs	
-%idefine TargetCPU 286
-%idefine TargetOS DOS
+; %idefine TargetOS DOS		; its the default
+; %idefine TargetCPU 286	; its the default
 
 %include "QCRT.ASM"
 
+pushcall	TextMode, 0x0001
+pushcall	HideCursor
 mov	[DirectVideo], byte FALSE
 
 ; Verbose way of setting AX, AX, BX, DX window to dimensions
@@ -34,17 +36,6 @@ LoopColors:
 	pop			ax
 	pushcall 	Window, ax, ax, bx, dx
 	pushcall 	ClrScr
-	push 		ax
-	push		dx
-	mov			dx, 500
-	shl			ax, 5
-	sub			dx, ax
-	shr			ax, 1
-	add			ax, 50
-	pushcall	Sound, dx
-	pushcall	Delay, ax
-	pop			dx
-	pop			ax
 	inc			ax
 	dec			bx
 	dec			dx
@@ -73,8 +64,8 @@ inc	cl
 mov		[TextAttr], byte 0x4F
 ShiftyLoop:
 		pushcall	ScrollUp, 1
-		pushcall	ScrollLeft, 2
-		pushcall	Delay, 50
+		pushcall	ScrollLeft, 1
+		pushcall	Delay, 100
 	loop		ShiftyLoop
 	
 ; Minimal restoring of some stuff like TextMode and Cursor

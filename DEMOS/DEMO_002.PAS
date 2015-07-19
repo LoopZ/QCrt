@@ -6,26 +6,18 @@
 program Test;
 
 uses QCrt;
-
-
 	
 var
-	M, I, K : integer;
+	M, I : integer;
 	S : String;	
 begin
-	S := 'Hello world'#0;
 	DirectVideo := False;
-	for K := 1 to 2 do
-		for I := 0 to 10 do begin
-			for M := 1 to I do begin
-				Write('A');
-			end;
-			for M := 1 to K do
-				Tab;
-			WriteLn(':');
-		end;
+	WriteLn('Hello, World!');
+	WriteLn('Press a key to continue.');
+	while not Keypressed do;
+	ReadKey;
 		
-{	M := (Hi(WindMax) + 1) div 2;
+	M := (Hi(WindMax) + 1) div 2;
 	for I := 0 to M do begin
 		TextBackground((I + 1) and $07);
 		Window(1 + I, 1 + I, Lo(ScreenMax) + 1 - I, Hi(ScreenMax) + 1 - I);
@@ -41,6 +33,7 @@ begin
 		ScrollRight(2);
 		Delay(100);
 	end;
-	clrscr;
-	WriteRawZStr(@S[1]); }
+	TextAttr := $07;
+	Window(1, 1, Lo(ScreenMax) + 1, Hi(ScreenMax) + 1);	
+	ClrScr;
 end.

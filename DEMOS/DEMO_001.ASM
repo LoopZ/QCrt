@@ -15,14 +15,16 @@ org 100h
 ; an 8086 to run. (Hopefully, I have no way to test it) Otherwise,
 ; at present, a 286+ CPU is required.
 
-; %define TargetCPU 8086
+%define TargetCPU 8086
 
 %include "QCRT.ASM"
 
 mov	[DirectVideo], byte FALSE
 
-pushcall 	WriteStr, DS, HelloWorld
-pushcall 	WriteStr, DS, PressAKey
+mov			bx, HelloWorld
+pushcall 	WriteStr, ds, bx
+mov			bx, PressAKey
+pushcall 	WriteStr, ds, bx
 WaitForKey:
 	pushcall	KeyPressed
 	jz			WaitForKey
@@ -111,8 +113,20 @@ ShiftyLoop:
 	pop			cx
 	loop		ShiftyLoop
 	
+
+xor cx, cx
+mov	bx, [ScreenMax]
+xchg cl, bh
+inc	cx
+inc bx
+mov	ax, 0x0001
+pushcall Window, ax, ax, bx, cx
+mov	al, 0x07
+mov	[TextAttr], al
+pushcall ClrScr
 ; Minimal restoring of some stuff like TextMode and Cursor
 ; then exit to OS with no error code
+
 Terminate 0
 
 HelloWorld: 	DB "Hello,",9,"World!",CRLF,0
