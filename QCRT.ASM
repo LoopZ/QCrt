@@ -143,7 +143,16 @@ InitCrtData:
 .NotMono:
 	cmp		ax, 0x03
 	jg		.NoDirectVideo
-	mov		[DirectVideo], byte TRUE
+	%ifdef DVSupport
+		%warning Direct Video Not Yet Implemented
+		mov		[DirectVideo], byte TRUE
+	%elifdef DirectVideoOnly
+		%warning Compiling without BIOS Video Support
+	%elifdef BiosVideoOnly
+		%warning Compiling without Direct Video Support
+	%else
+		%fatal Neither Direct or BIOS level video support active.
+	%endif
 .NoDirectVideo:
 ret
 
@@ -218,6 +227,9 @@ ret
 
 ; internal Write Character to Screen
 WriteRawCrtChar:
+%ifdef DVSupport
+%endif
+%ifdef BVSupport
 	pushy   ax, bx, cx, dx
 	mov		ah, 0x09
 	mov		bh, [VideoPage]
@@ -226,6 +238,7 @@ WriteRawCrtChar:
 	int		0x10
 	call	MoveCursorNext
 	poppy	dx, cx, bx, ax
+%endif
 ret
 
 ; internal Font setting routine
@@ -819,12 +832,16 @@ xret
 ; -------- These functions require Direct and BIOS level versions ---------
 ; procedure ScrollUp(Rows :byte); external;
 xprocedure ScrollUp, 2
+%ifdef DVSupport
+%endif
+%ifdef BVSupport
 	mov		ah, 6
 	mov		al, [STACKBP + 0]
 	mov		bh, [TextAttr]
 	mov		cx, [WindMin]
 	mov		dx, [WindMax]
 	int		0x10		
+%endif
 xret
 
 ; procedure ScrollDown(Rows :byte); external;

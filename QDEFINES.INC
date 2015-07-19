@@ -71,15 +71,15 @@
 	%idefine STACKBP  BP + 4
 %endif
 
-%idefine DirectVideoSupport
-%idefine BiosVideoSupport
+%idefine DVSupport
+%idefine BVSupport
 
 %ifdef DirectVideoOnly
-	%undef BiosVideoSupport
+	%undef BVSupport
 %endif
 
 %ifdef BiosVideoOnly
-	%undef DirectVideoSupport
+	%undef DVSupport
 %endif
 
 %ifdef TurboPascal55

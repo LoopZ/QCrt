@@ -9,17 +9,16 @@ org 100h
 ; By default, only DS, SS, SP and BP are preserved. Other registers
 ; can and usually are destroyed. 
 
-; %idefine SaveAllRegs	
+; %idefine SaveAllRegs		; default is disabled
 
 ; Uncomment the following %idefine to generate code that only requires
 ; an 8086 to run. (Hopefully, I have no way to test it) Otherwise,
 ; at present, a 286+ CPU is required.
 
-%define TargetCPU 8086
+%define TargetCPU 8086		; default is 286+
+%define BiosVideoOnly		; default is Direct and Bios modes
 
 %include "QCRT.ASM"
-
-mov	[DirectVideo], byte FALSE
 
 mov			bx, HelloWorld
 pushcall 	WriteStr, ds, bx
