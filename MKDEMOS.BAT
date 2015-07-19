@@ -1,0 +1,25 @@
+@echo off
+
+call MKCLEAN.BAT
+if not exist BIN mkdir BIN
+
+rem Make First Dos Demo
+NASM.EXE DEMOS\DEMO_001.ASM -fbin -O9 -o BIN\DEMO_001.COM
+NASM.EXE DEMOS\DEMO_003.ASM -fbin -O9 -o BIN\DEMO_003.COM
+
+goto TP55
+rem Make TurboPascal 7.0 Dos Demo
+NASM QCRT.ASM -fobj -O9 -o PASCAL\QCRT.OBJ
+TPC /OPASCAL /b PASCAL\QCRT.PAS
+if not exist PASCAL\QCRT.TPU goto TP55
+TPC /OPASCAL /UPASCAL /EBIN DEMOS\DEMO_002.PAS
+
+goto DEMO3
+
+:TP55
+rem Turbo Pascal 5.5 Fallback
+NASM QCRT.ASM -fobj -DTurboPascal55 -O9 -o PASCAL\QCRT.OBJ
+call TPC55 /OPASCAL /b PASCAL\QCRT.PAS
+call TPC55 /OPASCAL /UPASCAL /EBIN DEMOS\DEMO_002.PAS
+
+:DEMO3
