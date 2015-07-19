@@ -16,9 +16,7 @@
 
 %idefine QCrt 9.0
 
-%idefine TurboPascal55
-
-%ifdef PlatformDOS
+%ifidni TargetOS, DOS
 	use16
 %endif
 
@@ -29,9 +27,10 @@
 ; Internal Data Segment
 section Section_DATA
 
-VideoSeg:
-	DW 0
+VideoPtr:
 VideoOfs:
+	DW 0
+VideoSeg:
 	DW 0
 VideoPage:
 	DB 0
@@ -39,6 +38,7 @@ DoubleWide:
 	DB 0
 UserFont:
 	DB 0
+CurrentXY:
 CurrentX: 
 	DB 0
 CurrentY: 
@@ -227,18 +227,32 @@ ret
 
 ; internal Write Character to Screen
 WriteRawCrtChar:
-%ifdef DVSupport
-%endif
-%ifdef BVSupport
 	pushy   ax, bx, cx, dx
-	mov		ah, 0x09
-	mov		bh, [VideoPage]
-	mov		bl, [TextAttr]
-	mov		cx, 0x0001
-	int		0x10
-	call	MoveCursorNext
-	poppy	dx, cx, bx, ax
-%endif
+	%ifdef DVSupport
+		mov		ah, [DirectVideo]
+		cmp		ah, TRUE
+		jne		.BiosMode
+		pushy	es, si
+		mov		ah, [TextAttr]
+		push	ax
+		xCalcScreenPtr
+		pop		ax
+		es mov	[SI+BX], AX
+		poppy	si, es		
+		jmp		.Done
+	.BiosMode:
+	%endif
+	%ifdef BVSupport
+		mov		ah, 0x09
+		mov		bh, [VideoPage]
+		mov		bl, [TextAttr]
+		mov		cx, 0x0001
+		int		0x10
+	%endif
+
+	.Done:
+		call	MoveCursorNext
+		poppy	dx, cx, bx, ax
 ret
 
 ; internal Font setting routine
@@ -460,10 +474,30 @@ xprocedure GotoXY, 4
 	mov		ah, [STACKBP + 0]
 	dec		al
 	dec		ah
+	; bounds checking
+	mov		bx, [WindMax]
+	mov		cx, [WindMin]
+	sub		bh, ch
+	sub		bl, cl
+	inc		bl
+	inc		bh
+.BadX:
+	cmp		al, bl
+	jl	 	.BadY
+	sub		al, bl
+	jmp		.BadX
+.BadY:
+	cmp		ah, bh
+	jl	 	.AllGood
+	sub		ah, bh
+	jmp		.BadY
+.AllGood:
 	mov		[CurrentX], al
 	mov		[CurrentY], ah
-	; Include Bounds Checking
+	
+.Done:
 	call 	MoveCursorNow
+
 xret
 	
 ; function WhereX: byte; external;
@@ -692,6 +726,30 @@ xret
 	.Done:
 		call	MoveCursorNow
 	xret
+	
+	xprocedure WriteInt, 2
+		mov		ax, [STACKBP + 0]
+        mov  	bx, 0x000A
+        mov		cx, 0x0001
+	.DoneYet:
+		cmp		ax, bx
+		jge		.TooBig
+		push	ax
+	.JustRight:
+		pop		ax
+		add		ax, 0x0030
+        call	WriteRawCrtChar
+        loop	.JustRight
+		jmp		.Done
+	.TooBig:   
+		inc		cx
+		xor 	dx, dx
+		div		bx
+		push	dx
+		jmp		.DoneYet
+      .Done:
+		call	MoveCursorNow
+	xret
 %else
 	; procedure WriteRawPStr(S : String); external;
 	xprocedure WriteRawPStr, 4
@@ -832,16 +890,12 @@ xret
 ; -------- These functions require Direct and BIOS level versions ---------
 ; procedure ScrollUp(Rows :byte); external;
 xprocedure ScrollUp, 2
-%ifdef DVSupport
-%endif
-%ifdef BVSupport
 	mov		ah, 6
 	mov		al, [STACKBP + 0]
 	mov		bh, [TextAttr]
 	mov		cx, [WindMin]
 	mov		dx, [WindMax]
 	int		0x10		
-%endif
 xret
 
 ; procedure ScrollDown(Rows :byte); external;

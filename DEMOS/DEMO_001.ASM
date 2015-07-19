@@ -24,6 +24,7 @@ mov			bx, HelloWorld
 pushcall 	WriteStr, ds, bx
 mov			bx, PressAKey
 pushcall 	WriteStr, ds, bx
+
 WaitForKey:
 	pushcall	KeyPressed
 	jz			WaitForKey
@@ -48,9 +49,13 @@ LoopColors:
 	and			ax, 0x07
 	pushcall	TextBackground, ax
 	poppy		cx, dx, bx, ax
-	pushy 		ax, bx, dx, cx
+	pushy 		ax, bx, dx, cx, ax
 	pushcall 	Window, ax, ax, bx, dx
 	pushcall 	ClrScr
+	mov			ax, SquareStr
+	pushcall	WriteStr, DS, AX
+	pop			ax
+	pushcall	WriteInt, AX
 	pop			cx
 	push 		cx
 	mov			dx, 500
@@ -128,5 +133,6 @@ pushcall ClrScr
 
 Terminate 0
 
-HelloWorld: 	DB "Hello,",9,"World!",CRLF,0
+HelloWorld: 	DB "Hello,",9,"World! (Demo #1)",CRLF,0
 PressAKey: 		DB "Press a key to continue.",CRLF,0
+SquareStr:		DB "Square #",0

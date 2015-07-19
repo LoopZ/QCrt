@@ -5,7 +5,6 @@ if not exist BIN mkdir BIN
 
 rem Make First Dos Demo
 NASM.EXE DEMOS\DEMO_001.ASM -fbin -O9 -o BIN\DEMO_001.COM
-NASM.EXE DEMOS\DEMO_003.ASM -fbin -O9 -o BIN\DEMO_003.COM
 
 rem goto TP55
 rem Make TurboPascal 7.0 Dos Demo
@@ -24,3 +23,5 @@ call TPC55 /OPASCAL /b PASCAL\QCRT.PAS
 call TPC55 /OPASCAL /UPASCAL /EBIN DEMOS\DEMO_002.PAS
 
 :DEMO3
+rem third demo
+NASM.EXE DEMOS\DEMO_003.ASM -fbin -O9 -o BIN\DEMO_003.COM

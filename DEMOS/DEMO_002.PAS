@@ -11,8 +11,8 @@ var
 	M, I : integer;
 	S : String;	
 begin
-	DirectVideo := False;
-	WriteLn('Hello, World!');
+{	DirectVideo := True; }
+	WriteLn('Hello, World! (Demo #2)');
 	WriteLn('Press a key to continue.');
 	while not Keypressed do;
 	ReadKey;
@@ -22,6 +22,7 @@ begin
 		TextBackground((I + 1) and $07);
 		Window(1 + I, 1 + I, Lo(ScreenMax) + 1 - I, Hi(ScreenMax) + 1 - I);
 		ClrScr;
+		Write('Square #', I + 1);
 		Sound(500 - (M - I + 1) * 32); 
 		Delay(500 - (M - I + 1) * 32); 
 	end;

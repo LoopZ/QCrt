@@ -265,6 +265,27 @@
 	%undef export_arg
 %endmacro
 
+; es:si is origin; cx is bytes per line, ax, bx, dx destroyed
+%imacro xCalcScreenPtr 0
+		; cx bytes per line
+		mov		cx, [ScreenMax]
+		xor		ch, ch
+		inc		cl
+		shl		cx, 1
+		; true XY coordinate
+		mov		dx, [WindMin]
+		mov		bx, [CurrentXY]
+		add		bl, dl			; origin X is BL 
+		add		dh, bh			; origin Y is DH
+		xor		bh, bh			; clear BH, now BX is X 
+		shl		bx, 1			; times 2 Char/Attr
+		xor		ah, ah			; make AX, Y
+		mov		al, dh
+		mul		cx				; Times Bytes per row
+		add		bx, ax			; add X offset
+		les		si, [VideoPtr]		
+%endmacro
+
 %imacro Terminate 0-1 0
 		xcall DoneCrt
         MOV  AH, 4Ch  
