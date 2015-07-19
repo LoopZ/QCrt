@@ -5,8 +5,12 @@ User Input
 
 Mouse Support
 
+VESA Mode Support
+
 QCrtPlus Extra Common Functionality
 
 QCrtRead Enhanced User Keyboard Functionality
 
 Mac, Windows and Linux Support (Someday, Maybe)
+
+Lots and Lots and lots of optimization for size and speed.

@@ -29,6 +29,18 @@
 	%idefine TargetCPU 286
 %endif
 
+%ifdef TP55
+	%idefine TurboPascal55
+%endif
+
+%ifdef TP70
+	%idefine TurboPascal70
+%endif
+
+%ifdef TurboPascal70
+	%undef TurboPascal55
+%endif
+
 ; Configuring One's Self A Little Bit
 %ifidni __OUTPUT_FORMAT__, obj
 	%idefine FarCalls
@@ -42,6 +54,7 @@
 	%endif
 	; This really should not be in the defines file. But, oh well
 	; we will just stick it in here anyway.
+	%idefine	ASMTools
 	jmp SkipOverQCrt
 %endif
 
@@ -78,6 +91,10 @@
 	%define Section_DATA _DATA
 	%define Section_SHARED _BSS
 	%define Section_CODE _TEXT
+%endif
+
+%ifdef ASMTools
+		%idefine	CRLF 0x0d,0x0a
 %endif
 
 ; Constants
@@ -137,6 +154,7 @@
 %imacro ReturnsNothing 0 
 	%ifdef SaveAllRegs
 		%define 	export_arg none
+		pushf
 		pushy	ax, dx, bx, cx, si, di, es
 	%endif
 %endmacro
@@ -164,6 +182,7 @@
 			pop	dx
 		%elifidn export_arg none
 			poppy	dx, ax
+			popf
 		%endif 
 	%endif
 %endmacro

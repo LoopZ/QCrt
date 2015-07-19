@@ -93,7 +93,7 @@ section Section_SHARED
 	
 section Section_CODE
 ; ------------------- Internal Functions; Don't call them directly !!!!
-; Internal Crt Variable Data Initialization
+; Internal Crt Variable Data Initialization, called at any video mode change
 InitCrtData:
 	mov		[WindMin], word 0x0000
 
@@ -217,7 +217,7 @@ MoveCursorNext:
 ret
 
 ; internal Write Character to Screen
-WriteCrtChar:
+WriteRawCrtChar:
 	pushy   ax, bx, cx, dx
 	mov		ah, 0x09
 	mov		bh, [VideoPage]
@@ -294,7 +294,7 @@ xfunction InitCrt, boolean
 	mov		[CheckSnow], byte FALSE
 	mov		[CheckEOF], byte FALSE
 	mov		[Check101Key], byte FALSE
-	mov		[TabWidth], byte 0x04
+	mov		[TabWidth], byte 0x08
 	; Read ega 814 font and set as default user font 
 	%ifdef DirectVideoOnly
 		%warning "Default UserFontPtr set to Nil"
@@ -365,6 +365,7 @@ xfunction KeyPressed, boolean
 	mov  	al, TRUE
 .Done:
 	xor		ah, ah
+	cmp		al, TRUE
 xret
 	
 ; function ReadKey : char; external;
@@ -383,6 +384,7 @@ xfunction KeyPressedEnhanced, boolean
 	mov  	al, TRUE
 .Done:
 	xor		ah, ah
+	cmp		al, TRUE
 xret
 	
 ; function ReadKeyEnhanced : word; external;
@@ -605,26 +607,99 @@ xprocedure NoSound
 	OUT  DX, AL
 	OUT  DX, AL
 xret
-	
-; procedure WritePascalStr(S : String); external;
-xprocedure WriteCrt, 4
+
+; procedure WriteRawZStr(const S); external;
+xprocedure WriteRawZStr, 4
 	mov		bx, [STACKBP + 0]
 	mov		si, bx
 	mov		bx, [STACKBP + 2]
 	mov		es, bx
 	xor		ch, ch
-	mov		cl, [es:si]
-	inc		si
-	cmp		cx, 0x00
-	je		.Done
 	cld
 .WriteLoop:
 	es 		lodsb	
-	call	WriteCrtChar
-	loop	.WriteLoop
+	cmp		al, 0x00
+	je		.Done
+	call	WriteRawCrtChar
+	jmp		.WriteLoop
 .Done:
 	call	MoveCursorNow
 xret
+
+%ifdef ASMTools	
+	xprocedure WriteStr, 4
+		mov		bx, [STACKBP + 0]
+		mov		si, bx
+		mov		bx, [STACKBP + 2]
+		mov		es, bx
+		xor		ch, ch
+		cld
+	.WriteLoop:
+		es 			lodsb	
+		cmp			al, 0x00
+		je			.Done
+		cmp			al, 0x0d
+		je			.Return
+		cmp			al, 0x0a
+		je			.LineFeed
+		cmp			al, 0x08
+		je			.BackSpace
+		cmp			al, 0x09
+		je			.HTab
+		cmp			al, 0x0b
+		je			.VTab
+		cmp			al, 0x0c
+		je			.FormFeed
+		cmp			al, 0x07
+		je			.Bell
+		cmp			al, 0x7F
+		je			.Delete
+		cmp			al, 0x20
+		jl			.NoChar
+		call		WriteRawCrtChar
+		jmp			.WriteLoop
+	.Return:
+		pushcall	CarriageReturn
+		jmp			.WriteLoop
+	.LineFeed:
+		pushcall 	LineFeed
+		jmp			.WriteLoop
+	.BackSpace:
+		pushcall	BackSpace
+		jmp			.WriteLoop
+	.HTab:
+		pushcall	Tab
+		jmp			.WriteLoop
+	.VTab:
+	.FormFeed:
+	.Bell:
+	.Delete:
+	.NoChar:
+		jmp			.WriteLoop
+	.Done:
+		call	MoveCursorNow
+	xret
+%else
+	; procedure WriteRawPStr(S : String); external;
+	xprocedure WriteRawPStr, 4
+		mov		bx, [STACKBP + 0]
+		mov		si, bx
+		mov		bx, [STACKBP + 2]
+		mov		es, bx
+		xor		ch, ch
+		mov		cl, [es:si]
+		inc		si
+		cmp		cx, 0x00
+		je		.Done
+		cld
+	.WriteLoop:
+		es 		lodsb	
+		call	WriteRawCrtChar
+		loop	.WriteLoop
+	.Done:
+		call	MoveCursorNow
+	xret
+%endif
 	
 ; procedure CarriageReturn; external;
 xprocedure CarriageReturn		
@@ -667,10 +742,25 @@ xret
 
 ; procedure Tab; external;
 xprocedure Tab
-xret
-
-; procedure UnTab; external;
-xprocedure UnTab
+	xor		ch, ch
+	mov		cl, [TabWidth]
+	cmp		cl, 1
+	jl		.Done
+	je		.MoveLoop
+	xor		ax, ax
+	xor		dx, dx
+	mov		al, [CurrentX]
+	inc		al
+	div		cl
+	mov		cl, [TabWidth]
+	sub		cl, ah
+	jcxz	.Done
+.MoveLoop:
+	mov		al, 0x20
+	call	WriteRawCrtChar
+	; Call	MoveCursorMaybe
+	loop	.MoveLoop
+.Done:
 xret
 
 ; procedure SetCursor( Shape : word ); external;

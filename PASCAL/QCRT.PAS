@@ -134,9 +134,6 @@ procedure BackSpace;
 procedure Tab;
 { preform a Tab }
 
-procedure UnTab;
-{ preform a Reverse Tab }
-
 procedure InsChar;
 procedure DelChar;
 procedure InsColumn;
@@ -147,8 +144,10 @@ procedure ScrollDown(Rows : byte);
 procedure ScrollLeft(Columns : byte);
 procedure ScrollRight(Columns : byte);
 
-procedure WriteCrt(S : String);
-{ Ultra fast write to screen, special characters are shown. }
+procedure WriteRawPStr(S : String);
+{ Ultra fast write Pascal String to screen, special characters are shown. }
+procedure WriteRawZStr(S : pointer);
+{ Ultra fast write ASCIIZ String to screen, special characters are shown. }
 
 procedure HideCursor;
 procedure InsertCursor;
@@ -217,7 +216,7 @@ begin
 					$0D : CarriageReturn;
 					$08 : BackSpace;
 				else
-					WriteCrt(BufPtr^[I])
+					WriteRawPStr(BufPtr^[I])
 				end;
 				Inc(I);
 				if I >= BufSize then I := 0;
@@ -304,12 +303,12 @@ procedure NormVideo; external;
 procedure Delay(MS : Word); external;
 procedure Sound(Hz : Word); external;
 procedure NoSound; external;
-procedure WriteCrt(S : String); external;
+procedure WriteRawPStr(S : String); external;
+procedure WriteRawZStr(S : pointer); external;
 procedure CarriageReturn; external;
 procedure LineFeed; external;
 procedure BackSpace; external;
 procedure Tab; external;
-procedure UnTab; external;
 procedure HideCursor; external;
 procedure InsertCursor; external;
 procedure NormalCursor; external;
@@ -340,9 +339,9 @@ begin
 	if not InitCrt then Halt(10); { Internal Error }
 	OldExitProc := ExitProc;
 	ExitProc := @UnitFinal;
-{	AssignCrt(Output);
+	AssignCrt(Output);
 	Rewrite(Output);
-	AssignCRT(Input);
+{	AssignCRT(Input);
 	Reset(Input); }
 end;
 

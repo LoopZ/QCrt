@@ -21,6 +21,13 @@ org 100h
 
 mov	[DirectVideo], byte FALSE
 
+pushcall 	WriteStr, DS, HelloWorld
+pushcall 	WriteStr, DS, PressAKey
+WaitForKey:
+	pushcall	KeyPressed
+	jz			WaitForKey
+pushcall	ReadKey
+
 ; Verbose way of setting AX, AX, BX, DX window to dimensions
 ; and CX to ( height - 1 ) / 2
 mov			ax, 1
@@ -107,3 +114,6 @@ ShiftyLoop:
 ; Minimal restoring of some stuff like TextMode and Cursor
 ; then exit to OS with no error code
 Terminate 0
+
+HelloWorld: 	DB "Hello,",9,"World!",CRLF,0
+PressAKey: 		DB "Press a key to continue.",CRLF,0

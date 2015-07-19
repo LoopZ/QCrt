@@ -7,11 +7,25 @@ program Test;
 
 uses QCrt;
 
+
+	
 var
-	M, I : integer;
+	M, I, K : integer;
+	S : String;	
 begin
+	S := 'Hello world'#0;
 	DirectVideo := False;
-	M := (Hi(WindMax) + 1) div 2;
+	for K := 1 to 2 do
+		for I := 0 to 10 do begin
+			for M := 1 to I do begin
+				Write('A');
+			end;
+			for M := 1 to K do
+				Tab;
+			WriteLn(':');
+		end;
+		
+{	M := (Hi(WindMax) + 1) div 2;
 	for I := 0 to M do begin
 		TextBackground((I + 1) and $07);
 		Window(1 + I, 1 + I, Lo(ScreenMax) + 1 - I, Hi(ScreenMax) + 1 - I);
@@ -27,4 +41,6 @@ begin
 		ScrollRight(2);
 		Delay(100);
 	end;
+	clrscr;
+	WriteRawZStr(@S[1]); }
 end.
