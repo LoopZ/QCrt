@@ -1,0 +1,6 @@
+Copyright © 2015 Jerome Shidel, All rights reserved. (For now)
+
+At present, I have not yet decided which OpenSource License I will use 
+for QuickCrt. It will be either Apache, MIT, GPL v2 or v3. Since 
+GPL v3 is the most restrictive, if you conform to its license requirements
+for your use of this project, you will be fine.
