@@ -12,7 +12,6 @@ org 100h
 %include "QCRT.ASM"
 
 pushcall	TextMode, 0x0001
-mov			[DirectVideo], byte FALSE
 pushcall	HideCursor
 
 mov			[TextAttr], byte 0x1F
