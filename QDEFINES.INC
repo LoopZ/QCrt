@@ -292,3 +292,169 @@
         MOV  AL, %1
         INT  21h
 %endmacro
+
+%imacro CommandLineParser 1
+    cld
+    xor         bx, bx
+    mov         di, si
+    xor         dh, dh
+%%Loop:
+    lodsb
+    cmp         al, 0x0d
+    je          %%Next
+    cmp         al, 0x22
+    je          %%Quote
+    cmp         al, 0x27
+    je          %%Quote
+    cmp         al, 0x60
+    je          %%Quote 
+    cmp         al, 0x20
+    je          %%Next
+    cmp         al, "/"
+    je          %%Switch
+    jmp         %%Loop
+%%Quote:
+    mov         ah, al
+%%QuoteLoop:
+    inc         dh
+    lodsb
+    cmp         al, 0x0d
+    je          %%Error
+    cmp         al, ah
+    jne         %%QuoteLoop
+    jmp         %%Loop
+%%Next:
+    mov         cx, si
+    sub         cx, di
+    cmp         cx, 1
+    push        cx
+    jle         %%Skip
+    cmp         al, 0x0d
+    jne         %%NotEnd
+    dec         si
+    dec         cx
+%%NotEnd:
+    push        si
+    cmp         al, 0x20
+    jne         %%NotSpace
+    dec         si
+    dec         cx
+%%NotSpace:
+    cmp         bx, 0
+    jne         %%NotDefault
+    mov         bx, [%1 + 2]
+    xor         dl, dl
+%%NotDefault:
+    push        ax
+    cmp         dh, 0
+    je          %%NotQuoted
+    inc         di
+    dec         si
+    sub         cx, 2
+%%NotQuoted:
+    call        bx
+    xor         dh, dh
+    pop         ax
+    xor         bx, bx
+    pop         si
+%%Skip:
+    pop         cx
+    cmp         al, 0x0d
+    je          %%Done
+    cmp         al, 0x20
+    jne         %%ResetBX
+    cmp         cx, 1
+    push        cx
+    jle         %%KeepBX
+%%ResetBX:  
+    xor         bx, bx
+%%KeepBX:
+    mov         di, si
+    jmp         %%Loop
+%%Switch:
+    mov         di, si
+    lodsb
+    cmp         al, SwitchChar
+    jl          %%Error
+    cmp         al, 0x61
+    jl          %%CaseOK
+    cmp         al, 0x7a
+    jg          %%CaseOK
+    sub         al, 0x20
+%%CaseOK:
+    mov         bx, %1
+%%Lookup:
+    add         bx, 4
+    mov         cx, [bx]
+    cmp         cl, 0
+    je          %%Error
+    cmp         cl, al
+    jne         %%Lookup
+    mov         dx, [bx + 2]
+    mov         bx, dx
+    cmp         ch, 0
+    jne         %%NeedsParam
+    xor         cx, cx
+    push        si
+    mov         dl, al
+    call        bx
+    xor         dh, dh
+    xor         bx,bx   
+    pop         si
+    mov         di, si
+    jmp         %%Loop
+%%NeedsParam:
+    xor         dh, dh
+    mov         dl, al
+    mov         di, si
+    jmp         %%Loop
+%%ErrorMsg: 
+    DB          "Error parsing command-line options.",CRLF,0
+%%Error:
+    WriteStr    %%ErrorMsg
+    Terminate   1
+%%Done:
+    cmp         bx, 0
+    jne         %%Error
+%endmacro
+
+; macro that shows command line switch and data, mostly for debuging the
+; command line parser
+%imacro CommandLineDebug 0
+    push        cx
+    push        dx
+    mov         al, ' '
+    WriteChar
+    pop         dx
+    cmp         dl, 0
+    je          %%NoSwitch
+    push        dx
+    mov         al, SwitchChar
+    WriteChar
+    pop         dx
+    mov         al, dl
+    WriteChar
+    pop         cx
+    push        cx
+    cmp         cx, 0
+    jne         %%NoSwitch
+    pop         cx
+    ret
+%%NoSwitch:
+    mov         al, '('
+    WriteChar
+    pop         cx
+    cmp         cx, 0
+    je          %%NoText
+%%Repeat:
+    push        cx
+    mov         al, [di]
+    WriteChar
+    pop         cx
+    inc         di
+    loop        %%Repeat
+%%NoText:
+    mov         al, ')'
+    WriteChar
+    ret
+%endmacro
