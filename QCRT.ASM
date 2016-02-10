@@ -1,5 +1,5 @@
-; Copyright 2015 Jerome Shidel
-; All rights reserved
+; Copyright 2016 Jerome Shidel
+; Released Under GPL v2.0 License.
 
 ; QCrt 9.0.
 
@@ -10,7 +10,7 @@
 ; onto the stack in reverse order and are popped automatically by the function
 ; or procedure on their return. Simple return values are usually set in AL, AX
 ; or in the DX:AX pair. DS, SS, SP, BP are preserved. However, the state of
-; other registers is not guaranteed. So, if calling this library from 
+; other registers is not guaranteed. So, if calling this library from
 ; languages other than Pascal, such as from more assembly code, you must take
 ; care of preserving any registers and values you wish to retain.
 
@@ -39,15 +39,15 @@ DoubleWide:
 UserFont:
 	DB 0
 CurrentXY:
-CurrentX: 
+CurrentX:
 	DB 0
-CurrentY: 
+CurrentY:
 	DB 0
 CurrentCursor:
 	DW 0
-FirstMode: 
+FirstMode:
 	DW 0
-FirstCursor: 
+FirstCursor:
 	DW 0
 FirstAttr:
 	DB 0
@@ -90,7 +90,7 @@ section Section_SHARED
 	TabWidth:		DB 0
 
 %endif
-	
+
 section Section_CODE
 ; ------------------- Internal Functions; Don't call them directly !!!!
 ; Internal Crt Variable Data Initialization, called at any video mode change
@@ -107,29 +107,29 @@ InitCrtData:
 	jne		.NotDouble
 	or		bh, 0x80
 .NotDouble:
-	
+
 	mov		al, [UserFont]
 	cmp		al, TRUE
 	jne		.NotUserFont
 	or		bh, 0x40
 .NotUserFont:
 	mov		[LastMode], bx
-	
+
 	; figure out screen dimensions
 	MemWord 0x0040, 0x004A
 	dec		ax
 	mov		ah, al
 	MemByte 0x0040, 0x0084
 	xchg	al, ah
-	mov		[ScreenMax], ax		
+	mov		[ScreenMax], ax
 	mov		[WindMax], ax
-	
+
 	MemByte	0x0040, 0x0062
 	mov		[VideoPage], al
-	
+
 	; get cursor position and shape
 	call	ReadCursor
-	
+
 	; detect direct video memory address
 	MemWord 0x0040, 0x004E
 	mov		[VideoOfs], ax
@@ -202,7 +202,7 @@ MoveCursorNext:
 	mov		al, [CurrentX]
 	inc		al
 	mov		[CurrentX], al
-	mov		ah, [CurrentY]	
+	mov		ah, [CurrentY]
 	add		al, bl
 	cmp		al, dl
 	jle		.InsideWindow
@@ -214,12 +214,12 @@ MoveCursorNext:
 	cmp		ah, dh
 	jle		.InsideWindow
 	mov		ah, 0x00
-	mov		[CurrentY], ah	
+	mov		[CurrentY], ah
 	mov		ah, [CheckScroll]
 	cmp		ah, FALSE
 	je		.InsideWindow
 	sub		dh, bh
-	mov		[CurrentY], dh	
+	mov		[CurrentY], dh
 	xcall LineFeed
 .InsideWindow:
 	call	MoveCursorMaybe
@@ -238,7 +238,7 @@ WriteRawCrtChar:
 		xCalcScreenPtr
 		pop		ax
 		es mov	[SI+BX], AX
-		poppy	si, es		
+		poppy	si, es
 		jmp		.Done
 	.BiosMode:
 	%endif
@@ -263,7 +263,7 @@ SetFontMode:
 	mov		cx, ax
 	cmp		ch, 0
 	je		.Done
-	
+
 	mov		bl, 0
 	mov		ah, 0x11
 	mov		al, 0x12
@@ -275,7 +275,7 @@ SetFontMode:
 	mov		al, 0x14
 	cmp		ch, 0x10
 	je		.LoadROMFont
-	
+
 	test	ch, 0x40
 	jz		.Done
 	mov		[UserFont], byte TRUE
@@ -296,19 +296,19 @@ SetFontMode:
 	int		0x10
 	pop		es
 	pop		bp
-	
+
 	%ifdef DoubleFonts
 		; here will be code to set other half of double wide user font.
 		%fatal "Double Wide Fonts have not been implemented"
 	%endif
 	jmp		.Done
-		
+
 .LoadROMFont:
 	int		0x10
 	jmp		.Done
-	
+
 .Done:
-ret 
+ret
 
 ; ------------------------------- QCrt Interface Functions and Procedures
 
@@ -322,7 +322,7 @@ xfunction InitCrt, boolean
 	mov		[CheckEOF], byte FALSE
 	mov		[Check101Key], byte FALSE
 	mov		[TabWidth], byte 0x08
-	; Read ega 814 font and set as default user font 
+	; Read ega 814 font and set as default user font
 	%ifdef DirectVideoOnly
 		%warning "Default UserFontPtr set to Nil"
 		xor		ax, ax
@@ -351,14 +351,14 @@ xfunction InitCrt, boolean
 	call	InitCrtData
 	mov		ax, [LastMode]
 	mov		[FirstMode], ax
-	
+
 	mov		ax, [CurrentCursor]
 	mov		[FirstCursor], ax
 
 	mov		[TextAttr], byte 0x07
 	mov		al, [TextAttr]
 	mov		[FirstAttr], al
-	
+
 	mov		ax, TRUE
 	cmp		ax, TRUE
 xret
@@ -382,7 +382,7 @@ xprocedure DoneCrt
 	mov		[DirectVideo], byte FALSE
 	call  	MoveCursorNow
 xret
-	
+
 ; function KeyPressed : boolean; external;
 xfunction KeyPressed, boolean
 	mov  	ah, 0x01
@@ -394,14 +394,14 @@ xfunction KeyPressed, boolean
 	xor		ah, ah
 	cmp		al, TRUE
 xret
-	
+
 ; function ReadKey : char; external;
 xfunction ReadKey, char
 	mov  	ah, 0x00
 	int  	0x16
 	xor 	ah, ah
 xret
-	
+
 ; function KeyPressedEnhanced : boolean; external;
 xfunction KeyPressedEnhanced, boolean
 	mov  	ah, 0x11
@@ -413,7 +413,7 @@ xfunction KeyPressedEnhanced, boolean
 	xor		ah, ah
 	cmp		al, TRUE
 xret
-	
+
 ; function ReadKeyEnhanced : word; external;
 xfunction ReadKeyEnhanced, word
 	mov  	ah, 0x10
@@ -428,7 +428,7 @@ xfunction ReadKeyEnhanced, word
 	mov		al, 0x00
 .Done:
 xret
-	
+
 ; procedure TextMode(Mode : integer); external;
 xprocedure TextMode, 2
 	mov 	ax, [STACKBP + 0]
@@ -439,7 +439,7 @@ xprocedure TextMode, 2
 	call	SetFontMode
 	call 	InitCrtData
 xret
-	
+
 ; procedure Window(X1, Y1, X2, Y2 : byte); external;
 xprocedure Window, 8
 	mov		al, [STACKBP + 6]
@@ -458,7 +458,7 @@ xprocedure Window, 8
 	cmp		dl, bl
 	jg		.Invalid
 	cmp		dh, bh
-	jg		.Invalid	
+	jg		.Invalid
 	mov		[WindMin], ax
 	mov		[WindMax], dx
 	mov		ax, 0x01
@@ -494,26 +494,26 @@ xprocedure GotoXY, 4
 .AllGood:
 	mov		[CurrentX], al
 	mov		[CurrentY], ah
-	
+
 .Done:
 	call 	MoveCursorNow
 
 xret
-	
+
 ; function WhereX: byte; external;
 xfunction WhereX, byte
 	mov 	al, [CurrentX]
 	inc		al
 	xor		ah, ah
 xret
-	
+
 ; function WhereY: byte; external;
 xfunction WhereY, byte
 	mov 	al, [CurrentY]
 	inc		al
 	xor		ah, ah
 xret
-		
+
 ; procedure TextColor(Color : byte); external;
 xprocedure TextColor, 2
 	mov		al, [TextAttr]
@@ -523,7 +523,7 @@ xprocedure TextColor, 2
 	or		al, ah
 	mov		[TextAttr], al
 xret
-	
+
 ; procedure TextBackground(Color : byte); external;
 xprocedure TextBackground, 2
 	mov		al, [TextAttr]
@@ -533,29 +533,29 @@ xprocedure TextBackground, 2
 	%ifidn TargetCPU, 8086
 		mov		cl, 4
 		shl		ah, cl
-	%else	
+	%else
 		shl		ah, 4
 	%endif
 	or		al, ah
 	mov		[TextAttr], al
 xret
-	
+
 ; procedure LowVideo; external;
-xprocedure LowVideo				
+xprocedure LowVideo
 	mov		al, [TextAttr]
 	and		al, 0xF7
 	mov		[TextAttr], al
 xret
-	
+
 ; procedure HighVideo; external;
-xprocedure HighVideo			
+xprocedure HighVideo
 	mov		al, [TextAttr]
 	or		al, 0x08
 	mov		[TextAttr], al
 xret
-	
+
 ; procedure NormVideo; external;
-xprocedure NormVideo			
+xprocedure NormVideo
 	mov		al, [FirstAttr]
 	mov		[TextAttr], al
 xret
@@ -575,7 +575,7 @@ xprocedure Delay, 2
 			cmp		dx, 23
 			jl		.NoRoundUp
 			inc		ax
-		.NoRoundUp:	
+		.NoRoundUp:
 			cmp		ax, 0
 			je		.Done
 			mov		cx, ax
@@ -612,7 +612,7 @@ xprocedure Delay, 2
 	%endif
 	.NoDelay:
 xret
-		
+
 ; procedure Sound(Hz : Word); external;
 xprocedure Sound, 2
 	mov  	cx, [STACKBP + 0]
@@ -636,12 +636,12 @@ xprocedure Sound, 2
 	out		dx, al
 	mov		dx, 0x0061
 	in		al, dx
-	mov		al, 0x03 
+	mov		al, 0x03
 	out		dx, al
 xret
 
 ; procedure NoSound; external;
-xprocedure NoSound				
+xprocedure NoSound
 	MOV  DX, 0x0061
 	IN   AL, DX
 	AND  AL, 11111101b
@@ -664,7 +664,7 @@ xprocedure WriteRawZStr, 4
 	xor		ch, ch
 	cld
 .WriteLoop:
-	es 		lodsb	
+	es 		lodsb
 	cmp		al, 0x00
 	je		.Done
 	call	WriteRawCrtChar
@@ -673,7 +673,7 @@ xprocedure WriteRawZStr, 4
 	call	MoveCursorNow
 xret
 
-%ifdef ASMTools	
+%ifdef ASMTools
 	xprocedure WriteStr, 4
 		mov		bx, [STACKBP + 0]
 		mov		si, bx
@@ -682,7 +682,7 @@ xret
 		xor		ch, ch
 		cld
 	.WriteLoop:
-		es 			lodsb	
+		es 			lodsb
 		cmp			al, 0x00
 		je			.Done
 		cmp			al, 0x0d
@@ -726,7 +726,7 @@ xret
 	.Done:
 		call	MoveCursorNow
 	xret
-	
+
 	xprocedure WriteInt, 2
 		mov		ax, [STACKBP + 0]
         mov  	bx, 0x000A
@@ -741,7 +741,7 @@ xret
         call	WriteRawCrtChar
         loop	.JustRight
 		jmp		.Done
-	.TooBig:   
+	.TooBig:
 		inc		cx
 		xor 	dx, dx
 		div		bx
@@ -764,23 +764,23 @@ xret
 		je		.Done
 		cld
 	.WriteLoop:
-		es 		lodsb	
+		es 		lodsb
 		call	WriteRawCrtChar
 		loop	.WriteLoop
 	.Done:
 		call	MoveCursorNow
 	xret
 %endif
-	
+
 ; procedure CarriageReturn; external;
-xprocedure CarriageReturn		
+xprocedure CarriageReturn
 	mov		al, 0x00
 	mov		[CurrentX], al
 	call	MoveCursorNow
 xret
-	
+
 ; procedure LineFeed; external;
-xprocedure LineFeed				
+xprocedure LineFeed
 	mov		bx, [WindMin]
 	mov		dx, [WindMax]
 	mov		al, [CurrentY]
@@ -799,15 +799,15 @@ xprocedure LineFeed
 	mov		[CurrentY], al
 	call	MoveCursorNow
 xret
-	
+
 ; procedure BackSpace; external;
-xprocedure BackSpace			
+xprocedure BackSpace
 	mov		al, [CurrentX]
 	cmp		al, 0x00
 	je		.Ignore
 	dec		al
 	mov		[CurrentX], al
-	call	MoveCursorNow	
+	call	MoveCursorNow
 .Ignore:
 xret
 
@@ -895,7 +895,7 @@ xprocedure ScrollUp, 2
 	mov		bh, [TextAttr]
 	mov		cx, [WindMin]
 	mov		dx, [WindMax]
-	int		0x10		
+	int		0x10
 xret
 
 ; procedure ScrollDown(Rows :byte); external;
@@ -909,7 +909,7 @@ xprocedure ScrollDown, 2
 xret
 
 ; procedure ClrScr; external;
-xprocedure ClrScr				
+xprocedure ClrScr
 	mov		ax, 0x0600
 	mov		bh, [TextAttr]
 	mov		cx, [WindMin]
@@ -920,9 +920,9 @@ xprocedure ClrScr
 	push	ax
 	xcall 	GotoXY
 xret
-	
+
 ; procedure ClrEol; external;
-xprocedure ClrEol 				
+xprocedure ClrEol
 	mov		ax, 0x0600
 	mov		bh, [TextAttr]
 	mov		cx, [WindMin]
@@ -934,9 +934,9 @@ xprocedure ClrEol
 	mov		dh, ch
 	int		0x10
 xret
-	
+
 ; procedure InsLine; external;
-xprocedure InsLine				
+xprocedure InsLine
 	mov		ax, 0x0701
 	mov		bh, [TextAttr]
 	mov		cx, [WindMin]
@@ -945,20 +945,20 @@ xprocedure InsLine
 	add		ch, bl
 	int		0x10
 xret
-	
+
 ; procedure DelLine; external;
-xprocedure DelLine				
+xprocedure DelLine
 	mov		ax, 0x0601
 	mov		bh, [TextAttr]
 	mov		cx, [WindMin]
 	mov		dx, [WindMax]
 	mov		bl, [CurrentY]
 	add		ch, bl
-	int		0x10		
+	int		0x10
 xret
 
 ; procedure InsChar; external;
-xprocedure InsChar				
+xprocedure InsChar
 	mov		dl, [CurrentX]
 	push	dx
 	mov		ax, [WindMin]
@@ -980,9 +980,9 @@ xprocedure InsChar
 	inc		dl
 	mov		[CurrentX], dl
 	call	MoveCursorMaybe
-	poppy	ax, bx	
-	mov		bl, ah 
-	mov		bh, [VideoPage]	
+	poppy	ax, bx
+	mov		bl, ah
+	mov		bh, [VideoPage]
 	mov		cx, 0x0001
 	mov		ah, 0x09
 	int		0x10
@@ -996,7 +996,7 @@ xprocedure InsChar
 	mov		cx, 0x0001
 	int		0x10
 xret
-	
+
 ; procedure DelChar; external;
 xprocedure DelChar
 	mov		al, [CurrentX]
@@ -1020,9 +1020,9 @@ xprocedure DelChar
 	dec		dl
 	mov		[CurrentX], dl
 	call	MoveCursorMaybe
-	poppy	ax, bx	
-	mov		bl, ah 
-	mov		bh, [VideoPage]	
+	poppy	ax, bx
+	mov		bl, ah
+	mov		bh, [VideoPage]
 	mov		cx, 0x0001
 	mov		ah, 0x09
 	int		0x10
