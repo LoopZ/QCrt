@@ -1,6 +1,6 @@
 Welcome to the new QuickCrt version 9.x
 
-Released under GPL v2
+Released Under GPL v2.0 License.
 
 QuickCrt 9 is a complete rewrite of the previous versions. This
 version is 100% assembly code and is designed to be directly
