@@ -1,8 +1,9 @@
 @echo off
 
 rem Make and Clean bin directory
-if exist BIN del BIN\*.*
-if exist BIN rmdir BIN
+if exist BIN\DEMO_000.COM del BIN\*.COM
+if exist BIN\DEMO_004.EXE del BIN\*.EXE
+if exist BIN\NUL rmdir BIN
 
 rem Clean up previous builds if needed.
 if exist PASCAL\QCRT.OBJ del PASCAL\*.OBJ

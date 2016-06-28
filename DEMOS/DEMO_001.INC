@@ -1,4 +1,4 @@
-; Copyright ¸ 2015 Jerome Shidel
+; Copyright 2015 Jerome Shidel
 ; All rights reserved.
 
 %include "QCRT.ASM"
@@ -27,7 +27,7 @@ shr			cl, 1
 inc			cl
 
 LoopColors:
-	
+
 	pushy 		ax, bx, dx, cx
 	and			ax, 0x07
 	pushcall	TextBackground, ax
@@ -60,7 +60,7 @@ LoopColors:
 
 pushcall	NoSound
 
-; A window that may be shifty 
+; A window that may be shifty
 mov	 ax, 4
 push ax
 push ax
@@ -96,10 +96,10 @@ ShiftyLoop:
 		pushcall	ScrollDown, 1
 		pushcall	ScrollRight, 2
 		pushcall	Delay, 100
-	%endif	
+	%endif
 	pop			cx
 	loop		ShiftyLoop
-	
+
 
 xor cx, cx
 mov	bx, [ScreenMax]
