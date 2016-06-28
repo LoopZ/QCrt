@@ -180,7 +180,7 @@
             ; nothing to do here, move along
         %elifidn export_arg, word
             pop dx
-        %elifidn export_arg none
+        %elifidn export_arg, none
             poppy   dx, ax
             popf
         %endif
