@@ -85,12 +85,12 @@ var
 
     { Additional global variables }
     Check101Key : boolean;  { True when a 101-key keyboard is present }
-    CheckScroll : boolean;  { When true, characters written to last position
+    CheckScroll : boolean;  { Default true, characters written to last position
                               in a window, cause the window to scroll }
     UserFontHeight : byte;  { Height in scan lines of user defined font }
-    UserFontPtr : Pointer;  { Pointer to user font }
-    TabWidth  : byte;       { Spaces per Tab Character }
-    ScreenMax  : word;      { Screen Lower right coordinates }
+    UserFontPtr    : Pointer; { Pointer to user font }
+    TabWidth       : byte;  { Spaces per Tab Character }
+    ScreenMax      : word;  { Screen Lower right coordinates }
 
 { Standard procedures and functions }
 procedure AssignCrt(var F : text);
@@ -157,7 +157,6 @@ procedure HalfCursor;
 procedure FullCursor;
 
 procedure SetCursor(Shape : Word);
-
 
 implementation
 
