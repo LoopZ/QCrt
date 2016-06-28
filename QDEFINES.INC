@@ -9,7 +9,7 @@
 ; %idefine BiosVideoOnly        ; Uncomment to remove Direct Video Support
 ; %idefine DirectVideoOnly      ; Uncomment to remove BIOS Video Support
 ; %idefine SaveAllRegs          ; Uncomment to preserve all but return
-                                ; registers in procedure calls
+                                ; registers in procedure and function calls
 ; %idefine TurboPascal55        ; Only for TP 5.5 Objs, not for TP 7.0 or
                                 ; anything else!!
 
