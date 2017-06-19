@@ -1,5 +1,5 @@
 {
-    Copyright 2016 Jerome Shidel
+    Copyright 2017 Jerome Shidel
     Released Under GPL v2.0 License.
 }
 

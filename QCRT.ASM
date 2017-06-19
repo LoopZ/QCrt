@@ -1,4 +1,4 @@
-; Copyright 2016 Jerome Shidel
+; Copyright 2017 Jerome Shidel
 ; Released Under GPL v2.0 License.
 
 ; QCrt 9.0.
@@ -9,10 +9,10 @@
 ; are far calls. Data parameters passed to procedure and functions are pushed
 ; onto the stack in reverse order and are popped automatically by the function
 ; or procedure on their return. Simple return values are usually set in AL, AX
-; or in the DX:AX pair. DS, SS, SP, BP are preserved. However, the state of
-; other registers is not guaranteed. So, if calling this library from
-; languages other than Pascal, such as from more assembly code, you must take
-; care of preserving any registers and values you wish to retain.
+; or in the DX:AX pair. DS, SS, SP, BP are preserved. However, the state of all
+; other registers are not guaranteed. So, if calling this library from a
+; language other than Pascal, such as from more assembly code, you must take
+; care of preserving any registers and values you wish to retain yourself!
 
 %idefine QCrt 9.0
 
@@ -92,8 +92,10 @@ section Section_SHARED
 %endif
 
 section Section_CODE
+
 ; ------------------- Internal Functions; Don't call them directly !!!!
 ; Internal Crt Variable Data Initialization, called at any video mode change
+
 InitCrtData:
 	mov		[WindMin], word 0x0000
 
@@ -249,7 +251,6 @@ WriteRawCrtChar:
 		mov		cx, 0x0001
 		int		0x10
 	%endif
-
 	.Done:
 		call	MoveCursorNext
 		poppy	dx, cx, bx, ax
@@ -283,7 +284,6 @@ SetFontMode:
 	jz		.NotDoubleWide
 	mov		[DoubleWide], byte TRUE
 .NotDoubleWide:
-
 	; set user font
 	push	bp
 	push	es
@@ -971,7 +971,7 @@ xprocedure InsChar
 	dec		dl
 	mov		[CurrentX], dl
 	pushy	dx, cx
-	call	MoveCursorMaybe
+	call	MoveCursorActual
 	mov		ah, 0x08
 	mov		bh, [VideoPage]
 	int 	0x10
@@ -979,7 +979,7 @@ xprocedure InsChar
 	pushy 	dx, cx, bx, ax
 	inc		dl
 	mov		[CurrentX], dl
-	call	MoveCursorMaybe
+	call	MoveCursorActual
 	poppy	ax, bx
 	mov		bl, ah
 	mov		bh, [VideoPage]
@@ -990,7 +990,7 @@ xprocedure InsChar
 	loop	.InsLoop
 	pop		dx
 	mov		[CurrentX], dl
-	call	MoveCursorMaybe
+	call	MoveCursorActual
 	mov		ax, 0x0920
 	mov		bl, [TextAttr]
 	mov		cx, 0x0001

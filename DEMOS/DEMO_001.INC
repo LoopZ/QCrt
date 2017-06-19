@@ -83,6 +83,7 @@ inc	cl
 
 mov		al, 0x4F
 mov		[TextAttr], al
+
 ShiftyLoop:
 	push		cx
 	%ifidni		TargetCPU, 8086
@@ -100,7 +101,6 @@ ShiftyLoop:
 	pop			cx
 	loop		ShiftyLoop
 
-
 xor cx, cx
 mov	bx, [ScreenMax]
 xchg cl, bh
@@ -111,6 +111,7 @@ pushcall Window, ax, ax, bx, cx
 mov	al, 0x07
 mov	[TextAttr], al
 pushcall ClrScr
+
 ; Minimal restoring of some stuff like TextMode and Cursor
 ; then exit to OS with no error code
 
