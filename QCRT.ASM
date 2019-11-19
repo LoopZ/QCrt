@@ -75,6 +75,15 @@ section Section_SHARED
 	extern TabWidth			; : byte;		{ Spaces per tab }
 	extern ScreenMax		; : word;		{ Screen lower right coordinates }
 
+    %ifdef EnableMouse
+        extern MouseButtons     ; : integer;    { Number of buttons, 0 if no mouse }
+        extern MouseVisible     ; : boolean;    { Visible state of mouse }
+        extern MouseSlow        ; : word;       { Value to slow down movement }
+        extern MouseClickSpeed  ; : word;       { Mouse double click speed }
+        extern MouseHomeX       ; : word;       { X Home position of mouse }
+        extern MouseHomeY       ; : word;       { Y Home position of mouse }
+    %endif
+
 %else
 	CheckBreak: 	DB FALSE
 	CheckEOF: 		DB FALSE
@@ -90,6 +99,14 @@ section Section_SHARED
 	UserFontHeight:	DB 0
 	UserFontPtr:	DD 0
 	TabWidth:		DB 0
+    %ifdef EnableMouse
+        MouseButtons    DB 0
+        MouseVisible    DB FALSE
+        MouseSlow       DW 0
+        MouseClickSpeed DW 0
+        MouseHomeX      DW 0
+        MouseHomeY      DW 0
+    %endif
 
 %endif
 

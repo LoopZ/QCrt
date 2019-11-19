@@ -9,7 +9,7 @@ if exist %DOSDIR%\LINKS\%TPC%.BAT set TPC=call %TPC%
 call MKCLEAN.BAT
 if not exist BIN mkdir BIN
 
-goto SkipCOMs
+goto MouseTests
 rem Make First Dos Demo
 %ASM% -IDEMOS\ DEMOS\DEMO_000.ASM -fbin -O9 -o BIN\DEMO_000.COM
 %ASM% -IDEMOS\ DEMOS\DEMO_001.ASM -fbin -O9 -o BIN\DEMO_001.COM
@@ -25,6 +25,7 @@ if not exist PASCAL\QCRT.TPU goto TPFailed
 rem %TPC% /OPASCAL /UPASCAL /EBIN DEMOS\DEMO_004.PAS
 
 rem Mouse Support
+:MouseTests
 %ASM% QCRT.ASM -fobj -D%TPV% -DEnableMouse -O9 -o PASCAL\QCRT.OBJ
 %TPC% /OPASCAL /b PASCAL\QCRT.PAS
 %TPC% /OPASCAL /UPASCAL /EBIN DEMOS\DEMO_005.PAS
