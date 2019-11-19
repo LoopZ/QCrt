@@ -1,7 +1,7 @@
-; Copyright 2017 Jerome Shidel
+; Copyright 2019 Jerome Shidel
 ; Released Under GPL v2.0 License.
 
-; QCrt 9.0.
+; QCrt 9.1
 
 ; For DOS, Nasm and Pascal 16-bit edition.
 
@@ -14,10 +14,12 @@
 ; language other than Pascal, such as from more assembly code, you must take
 ; care of preserving any registers and values you wish to retain yourself!
 
-%idefine QCrt 9.0
+%idefine QCrt 9.1
 
-%ifidni TargetOS, DOS
-	use16
+
+%ifndef TargetOS
+    %idefine TargetOS DOS
+    %idefine TargetCPU 8086
 %endif
 
 %ifndef QDefines
