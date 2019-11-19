@@ -1,14 +1,12 @@
 ; Copyright 2019 Jerome Shidel
 ; Released Under GPL v2.0 License.
 
-use16
-
 org 100h
 
 %idefine SaveAllRegs
 ; %idefine TargetOS DOS     ; its the default
 ; %idefine TargetCPU 286    ; its the default
-%define DisableMouse        ; disable mouse support
+; %define DisableMouse        ; disable mouse support, default
 
 %include "QCRT.ASM"
 

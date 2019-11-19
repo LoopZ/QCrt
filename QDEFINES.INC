@@ -58,6 +58,10 @@
     %idefine DisableMouse
 %endif
 
+%ifdef EnableMouse
+    %warning "Mouse support is enabled."
+%endif
+
 ; Configuring One's Self A Little Bit
 %ifidni __OUTPUT_FORMAT__, obj
     %idefine FarCalls
