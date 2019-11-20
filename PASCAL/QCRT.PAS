@@ -92,6 +92,16 @@ var
     TabWidth       : byte;  { Spaces per Tab Character }
     ScreenMax      : word;  { Screen Lower right coordinates }
 
+    {$IFDEF EnableMouse}
+    MouseButtons     : integer;    { Number of buttons, 0 if no mouse }
+    MouseVisible     : boolean;    { Visible state of mouse }
+    MouseSlow        : word;       { Value to slow down movement }
+    MouseClickSpeed  : word;       { Mouse double click speed }
+    MouseHomeX       : word;       { X Home position of mouse }
+    MouseHomeY       : word;       { Y Home position of mouse }
+    {$ENDIF}
+
+
 { Standard procedures and functions }
 procedure AssignCrt(var F : text);
 function KeyPressed : boolean;
@@ -157,6 +167,11 @@ procedure HalfCursor;
 procedure FullCursor;
 
 procedure SetCursor(Shape : Word);
+
+{$IFDEF EnableMouse}
+procedure MouseShow;
+procedure MouseHide;
+{$ENDIF}
 
 implementation
 
@@ -321,6 +336,11 @@ procedure ScrollRight(Columns : byte); external;
 procedure SetCursor(Shape : Word); external;
 procedure InsColumn; external;
 procedure DelColumn; external;
+
+{$IFDEF EnableMouse}
+procedure MouseShow; external;
+procedure MouseHide; external;
+{$ENDIF}
 
 { initialization & finalization routines }
 procedure UnitFinal;

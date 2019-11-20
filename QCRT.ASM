@@ -56,6 +56,13 @@ FirstAttr:
 DelayData:
 	DW 0
 
+%ifdef EnableMouse
+    MouseMask:
+        DW 0
+    MouseHandler:
+        DW 0, 0
+%endif
+
 %ifidn __OUTPUT_FORMAT__, obj
 
 section Section_SHARED
@@ -329,6 +336,39 @@ SetFontMode:
 .Done:
 ret
 
+%ifdef EnableMouse
+
+SwapMouseHandler:
+    mov     ax, [MouseButtons]
+    cmp     ax, 0x0000
+    jna     .NoMouse
+    push    es
+    mov     ax, 0x0014
+    mov     cx, [MouseMask]
+    mov     dx, [MouseHandler+2]
+    push    dx
+    pop     es
+    mov     dx, [MouseHandler]
+    int     0x33
+    mov     [MouseHandler], dx
+    push    es
+    pop     dx
+    mov     [MouseHandler+2], dx
+    mov     [MouseMask], cx
+    pop     es
+.NoMouse:
+ret
+
+MouseEventHandler:
+retf
+
+MouseHidePointer:
+ret
+
+MouseShowPointer:
+ret
+
+%endif
 ; ------------------------------- QCrt Interface Functions and Procedures
 
 ; function InitCrt : boolean; external;
@@ -341,6 +381,64 @@ xfunction InitCrt, boolean
 	mov		[CheckEOF], byte FALSE
 	mov		[Check101Key], byte FALSE
 	mov		[TabWidth], byte 0x08
+	%ifdef EnableMouse
+        mov     [MouseButtons], byte 0x00
+        mov     [MouseVisible], byte FALSE
+        mov     [MouseSlow], word 0x0000
+        mov     [MouseClickSpeed], word 0x0000
+        mov     [MouseHomeX] , word 0x0000
+        mov     [MouseHomeY], word 0x0000
+
+        ; first test valid Mouse Interrupt Vector
+        push    es
+        push    di
+        mov     ax, 0x0033
+        mov     cx, 0x0004
+        mul     cx
+        mov     di, cx
+        xor     cx, cx
+        mov     ax, [es:di + 2]
+        mov     bx, [es:di]
+        cmp     ax, cx
+        jne     .MouseIRQTest
+        cmp     bx, cx
+        je      .MouseFailed
+    .MouseIRQTest:
+        push    ax
+        pop     es
+        mov     al, [es:bx]
+        cmp     al, 0xcf
+        jne     .MouseCheck
+    .MouseFailed:
+        pop     di
+        pop     es
+        jmp     .NoMousePresent
+    .MouseCheck:
+        pop     di
+        pop     es
+        xor     ax, ax
+        int     0x33
+        cmp     ax, 0xffff
+        jne     .NoMousePresent
+        mov     al, 0x02
+        cmp     bx, 0xffff
+        je      .MousePresent
+        mov     al, bl
+        cmp     bl, 0x00
+        jne     .MousePresent
+        mov     al, 0x01
+    .MousePresent:
+        mov     [MouseButtons], al
+        push    cs
+        pop     ax
+        mov     [MouseHandler + 2], ax
+        mov     [MouseHandler], word MouseEventHandler
+        mov     [MouseMask], word 0xffff     ; Technically should be 01111111b
+        call    SwapMouseHandler
+    .NoMousePresent:
+
+    %endif
+
 	; Read ega 814 font and set as default user font
 	%ifdef DirectVideoOnly
 		%warning "Default UserFontPtr set to Nil"
@@ -384,6 +482,12 @@ xret
 
 ; procedure DoneCrt;
 xprocedure DoneCrt
+    %ifdef EnableMouse
+        call    MouseHidePointer
+        call    SwapMouseHandler
+        mov     [MouseButtons], byte 0x00
+    %endif
+
 	mov		al, [FirstAttr]
 	mov		[TextAttr], al
 	mov		ax, [FirstMode]
@@ -1135,6 +1239,22 @@ xprocedure ScrollRight, 2
 	pop		dx
 	mov		[CurrentX], dl
 xret
+
+; ----- Mouse procedures and functions
+
+%ifdef EnableMouse
+
+; procedure MouseHide; external;
+xprocedure MouseHide
+    call MouseHidePointer
+xret
+
+; procedure MouseHide; external;
+xprocedure MouseShow
+    call MouseShowPointer
+xret
+
+%endif
 
 SkipOverQCrt:
 %ifidni __OUTPUT_FORMAT__, bin
