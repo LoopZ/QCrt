@@ -16,9 +16,11 @@
 
 %idefine QCrt 9.1
 
-
 %ifndef TargetOS
     %idefine TargetOS DOS
+%endif
+
+%ifndef TargetCPU
     %idefine TargetCPU 8086
 %endif
 
@@ -61,6 +63,8 @@ DelayData:
         DW 0
     MouseHandler:
         DW 0, 0
+    MouseLastData:
+        DW 0, 0, 0    ; Button State, XY, Movement XY
 %endif
 
 %ifidn __OUTPUT_FORMAT__, obj
@@ -120,6 +124,14 @@ section Section_SHARED
 section Section_CODE
 
 ; ------------------- Internal Functions; Don't call them directly !!!!
+
+%ifdef EnableMouse
+    %ifidn __OUTPUT_FORMAT__, obj
+        MouseDataSeg:
+            dw 0
+    %endif
+%endif
+
 ; Internal Crt Variable Data Initialization, called at any video mode change
 
 InitCrtData:
@@ -359,8 +371,98 @@ SwapMouseHandler:
 .NoMouse:
 ret
 
+
 MouseEventHandler:
+    ;    AX = Event Flag
+    ;    BX = Button State
+    ;    CX = X coor
+    ;    DX = Y Coor
+    ;    SI = X Movement
+    ;    DI = Y Movement
+    ;    DS = Mouse Driver Data Segment
+
+    pushf
+    push    ds
+    push    es
+
+    %ifidn  TargetCPU, 8086
+        push    ax
+        push    bx
+        push    cx
+        push    dx
+        push    si
+        push    di
+        push    bp
+    %else
+        pusha
+    %endif
+    mov     bp, sp
+
+    mov     ax, [cs:MouseDataSeg]
+    push    ax
+    pop     ds
+
+    call    .DownSample
+    push    cx
+    mov     cx, si
+    mov     dx, di
+    call    .DownSample
+    mov     dx, cx
+    pop     cx
+
+    mov     ax, [MouseLastData]
+    cmp     ax, bx
+    jne     .Trigger
+
+
+
+    mov     sp, bp
+    %ifidn  TargetCPU, 8086
+        pop     bp
+        pop     di
+        pop     si
+        pop     dx
+        pop     cx
+        pop     bx
+        pop     ax
+    %else
+        popa
+    %endif
+
+    pop     es
+    pop     ds
+    popf
 retf
+
+; Sub procedure of MouseHandler.
+; in CX, DX are Mouse Raw Mouse XY. Out CX is Mouse Screen XY;
+.DownSample:
+    ; Downsample and range check Mouse XY Coordinates
+    mov     ax, cx
+    mov     cx, [MouseSlow]
+    shr     ax, cl
+    cmp     ah, 0x00
+    je      .NotMaxX
+    mov     al, 0xff
+.NotMaxX:
+    mov     ah, [ScreenMax]
+    cmp     jbe, .RangeXOK
+    mov     al, ah
+.RangeXOK:
+    push    ax
+    mov     ax, dx
+    shr     ax, cl
+    cmp     ah, 0x00
+    je      .NotMaxY
+    mov     al, 0xff
+.NotMaxY:
+    mov     ah, [ScreenMax + 1]
+    cmp     jbe, .RangeXOK
+    mov     al, ah
+.RangeYOK:
+    pop     cx
+    mov     ch, al
+ret
 
 MouseHidePointer:
 ret
@@ -382,6 +484,12 @@ xfunction InitCrt, boolean
 	mov		[Check101Key], byte FALSE
 	mov		[TabWidth], byte 0x08
 	%ifdef EnableMouse
+        %ifidn __OUTPUT_FORMAT__, obj
+            push    ds
+            pop     ax
+            mov     [cs:MouseDataSeg], ax
+        %endif
+
         mov     [MouseButtons], byte 0x00
         mov     [MouseVisible], byte FALSE
         mov     [MouseSlow], word 0x0000
