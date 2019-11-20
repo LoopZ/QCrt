@@ -413,9 +413,10 @@ MouseEventHandler:
     mov     ax, [MouseLastData]
     cmp     ax, bx
     jne     .Trigger
+    jmp     .NoChange
+.Trigger:
 
-
-
+.NoChange:
     mov     sp, bp
     %ifidn  TargetCPU, 8086
         pop     bp
@@ -446,7 +447,8 @@ retf
     mov     al, 0xff
 .NotMaxX:
     mov     ah, [ScreenMax]
-    cmp     jbe, .RangeXOK
+    cmp     al, ah
+    jbe     .RangeXOK
     mov     al, ah
 .RangeXOK:
     push    ax
@@ -457,7 +459,8 @@ retf
     mov     al, 0xff
 .NotMaxY:
     mov     ah, [ScreenMax + 1]
-    cmp     jbe, .RangeXOK
+    cmp     al, ah
+    jbe     .RangeXOK
     mov     al, ah
 .RangeYOK:
     pop     cx
