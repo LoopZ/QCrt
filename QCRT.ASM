@@ -439,15 +439,16 @@ MouseEventHandler:
 .Changes:
 
     ; Update Software Mouse Position
-    mov     [MouseLastState+4], dx
-    mov     [MouseLastState+2], cx
     mov     [MouseLastState], bx
+    mov     [MouseLastState+2], cx
+    mov     [MouseLastState+4], dx
+
 
     mov     al, [MouseCheckState]
     cmp     al, 0x00
     jne     .Frozen
 
-    mov     ax, [MouseLastState]
+    mov     ax, [MouseCheckState + 2]
     cmp     ax, bx
     je      .NoFreeze
     inc     al
@@ -1524,23 +1525,35 @@ xret
 
 ;function MouseMove: boolean; external;
 xfunction MouseMove, byte
-    mov  bx, [MouseCheckState + 4]
-    mov  cx, [MouseLastState + 2]
-    cmp  bx, cx
-    jne  .Changed
-    mov  bx, [MouseCheckState + 6]
-    mov  cx, [MouseLastState + 2]
-    cmp  bx, cx
-    je   .NoChange
+    mov     al, [MouseCheckState]
+    cmp     al, 0x00
+    jne     .NoChange
+    mov     ax, [MouseCheckState + 4]
+    mov     cx, [MouseLastState + 2]
+    cmp     ax, cx
+    jne     .Changed
+    mov     bx, [MouseCheckState + 6]
+    mov     dx, [MouseLastState + 4]
+    cmp     bx, dx
+    je      .NoChange
 .Changed:
-    mov al, TRUE
+    mov     [MouseCheckState+4], ax
+    mov     [MouseCheckState+6], bx
+    mov     al, TRUE
+    jmp     .Done
 .NoChange:
-    xor ah, ah
+    mov     al, FALSE
+.Done:
 xret
 
 ;function MouseClick : boolean; external;
 xfunction MouseClick, byte
-    mov  al, [MouseCheckState]
+    mov  al, False
+    mov  ah, [MouseCheckState]
+    cmp  ah, 0x00
+    je   .Done
+    mov  al, True
+.Done:
 xret
 
 ;function MouseDoubleClick : boolean; external;
@@ -1551,10 +1564,20 @@ xret
 ;function ReadMouse : integer; external;
 xfunction ReadMouse, word
 xret
-    xor  bx, bx
-    mov  [MouseCheckState], bx
+    cli
     mov  ax, [MouseCheckState + 2]
+    mov  bx, [MouseLastState]
+    mov  cx, [MouseLastState+4]
+    mov  dx, [MouseLastState+6]
     mov  [MouseCheckState + 2], bx
+    mov  [MouseCheckState + 4], cx
+    mov  [MouseCheckState + 6], dx
+    cmp  ax, bx
+    jne  .StayFrozen
+    xor  bx, bx
+    mov  [MouseCheckState], bl
+.StayFrozen:
+    sti
 %endif
 
 SkipOverQCrt:
