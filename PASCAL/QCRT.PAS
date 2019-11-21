@@ -96,7 +96,7 @@ var
     MouseButtons     : integer;    { Number of buttons, 0 if no mouse }
     MouseVisible     : boolean;    { Visible state of mouse }
     MouseCellX       : word;       { Value to slow down movement }
-    MouseSlowY       : word;       { Value to slow down movement }
+    MouseCellY       : word;       { Value to slow down movement }
     MouseClickSpeed  : word;       { Mouse double click speed }
     MouseHomeX       : integer;    { X Home position of mouse }
     MouseHomeY       : integer;    { Y Home position of mouse }
