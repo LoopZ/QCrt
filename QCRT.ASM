@@ -65,8 +65,11 @@ DelayData:
         DW 0, 0
     MouseLastState:
         DW 0, 0, 0 ; Button State, X, Y
+    MouseFrozen:
+        DB 0
     MouseCheckState:
-        DW 0, 0, 0, 0
+        DW 0, 0, 0
+
 %endif
 
 %ifidn __OUTPUT_FORMAT__, obj
@@ -440,23 +443,22 @@ MouseEventHandler:
 
     ; Update Software Mouse Position
     mov     [MouseLastState], bx
-    mov     [MouseLastState+2], cx
-    mov     [MouseLastState+4], dx
+    mov     [MouseLastState + 2], cx
+    mov     [MouseLastState + 4], dx
 
-
-    mov     al, [MouseCheckState]
+    mov     al, [MouseFrozen]
     cmp     al, 0x00
     jne     .Frozen
 
-    mov     ax, [MouseCheckState + 2]
+    mov     ax, [MouseCheckState]
     cmp     ax, bx
     je      .NoFreeze
-    inc     al
-    mov     [MouseCheckState], al
+    mov     al, 0x01
+    mov     [MouseFrozen], al
+    mov     [MouseCheckState + 2], cx
+    mov     [MouseCheckState + 4], dx
 .NoFreeze:
-    mov     [MouseCheckState + 2], bx
-    mov     [MouseCheckState + 4], cx
-    mov     [MouseCheckState + 6], dx
+    mov     [MouseCheckState], bx
 
 .Frozen:
 
@@ -545,7 +547,7 @@ MouseActivate:
     je      .NoMouse
     mov     ax, 0x0000
     int     0x33
-    mov     [MouseCheckState], byte 0x00
+    mov     [MouseFrozen], byte 0x00
     mov     [MouseVisible], byte FALSE
     mov     [MouseCellX], word 0x0008
     ; Check for 40 Column Display
@@ -1511,45 +1513,65 @@ xret
 
 ; function WhereX: byte; external;
 xfunction MouseWhereX, byte
-	mov 	ax, [MouseCheckState + 4]
-	inc		ax
-	xor		ah, ah
+    cli
+    mov     ax, [MouseCheckState + 2]
+    mov     bl, [MouseFrozen]
+    cmp     bl, 0x00
+    jne     .Done
+    mov     cx, [MouseLastState + 2]
+    cmp     ax, cx
+    je      .Done
+    mov     ax, cx
+    mov     [MouseCheckState + 2], ax
+.Done:
+    sti
 xret
 
 ; function WhereY: byte; external;
 xfunction MouseWhereY, byte
-	mov 	ax, [MouseCheckState + 6]
-	inc		ax
-	xor		ah, ah
+    cli
+    mov     ax, [MouseCheckState + 4]
+    mov     bl, [MouseFrozen]
+    cmp     bl, 0x00
+    jne     .Done
+    mov     cx, [MouseLastState + 4]
+    cmp     ax, cx
+    je      .Done
+    mov     ax, cx
+    mov     [MouseCheckState + 4], ax
+.Done:
+    sti
 xret
 
 ;function MouseMove: boolean; external;
 xfunction MouseMove, byte
-    mov     al, [MouseCheckState]
+    cli
+    mov     al, [MouseFrozen]
     cmp     al, 0x00
     jne     .NoChange
-    mov     ax, [MouseCheckState + 4]
+    mov     ax, [MouseCheckState + 2]
     mov     cx, [MouseLastState + 2]
     cmp     ax, cx
     jne     .Changed
-    mov     bx, [MouseCheckState + 6]
+    mov     bx, [MouseCheckState + 4]
     mov     dx, [MouseLastState + 4]
     cmp     bx, dx
     je      .NoChange
 .Changed:
-    mov     [MouseCheckState+4], ax
-    mov     [MouseCheckState+6], bx
+    mov     [MouseCheckState + 2], ax
+    mov     [MouseCheckState + 4], bx
     mov     al, TRUE
     jmp     .Done
 .NoChange:
     mov     al, FALSE
 .Done:
+    sti
 xret
 
 ;function MouseClick : boolean; external;
 xfunction MouseClick, byte
     mov  al, False
-    mov  ah, [MouseCheckState]
+    mov  ah, [MouseFrozen]
     cmp  ah, 0x00
     je   .Done
     mov  al, True
@@ -1565,17 +1587,17 @@ xret
 xfunction ReadMouse, word
 xret
     cli
-    mov  ax, [MouseCheckState + 2]
+    mov  ax, [MouseCheckState]
     mov  bx, [MouseLastState]
-    mov  cx, [MouseLastState+4]
-    mov  dx, [MouseLastState+6]
-    mov  [MouseCheckState + 2], bx
-    mov  [MouseCheckState + 4], cx
-    mov  [MouseCheckState + 6], dx
+    mov  cx, [MouseLastState + 2]
+    mov  dx, [MouseLastState + 4]
+    mov  [MouseCheckState], bx
+    mov  [MouseCheckState + 2], cx
+    mov  [MouseCheckState + 4], dx
     cmp  ax, bx
     jne  .StayFrozen
     xor  bx, bx
-    mov  [MouseCheckState], bl
+    mov  [MouseFrozen], bl
 .StayFrozen:
     sti
 %endif
