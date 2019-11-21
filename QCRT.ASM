@@ -470,15 +470,23 @@ MouseEventHandler:
 retf
 
 MouseHidePointer:
+    mov     ax, [MouseButtons]
+    cmp     ax, 0x0000
+    je      .NoMouse
     mov     ax, 0x0002
     int     0x33
+.NoMouse:
     mov     [MouseVisible], byte FALSE
 ret
 
 MouseShowPointer:
+    mov     ax, [MouseButtons]
+    cmp     ax, 0x0000
+    je      .NoMouse
     mov     ax, 0x0001
     int     0x33
     mov     [MouseVisible], byte TRUE
+.NoMouse:
 ret
 
 MouseMove:
@@ -521,13 +529,35 @@ MouseInit:
     mov     [MouseMask], ax
     jmp     MouseActivate
 MouseReset:
+    mov     ax, [MouseButtons]
+    cmp     ax, 0x0000
+    jne      .MousePresent
+    ret
+.MousePresent:
     call    SwapMouseHandler
 MouseActivate:
+    mov     ax, [MouseButtons]
+    cmp     ax, 0x0000
+    je      .NoMouse
     mov     ax, 0x0000
     int     0x33
-    call    SwapMouseHandler
     mov     [MouseVisible], byte FALSE
     mov     [MouseSlowX], word 0x0008
+    ; Check for 40 Column Display
+    mov     ax, [LastMode]
+    cmp     al, 0x01
+    ja      .NormalWidth
+    ;mov     ax, 0x0010
+    ;mov     [MouseSlowX], ax
+    mov     ax, 0x08
+    mov     dx, 40 ; Decimal Column max
+    mul     dx
+    mov     dx, ax
+    dec     dx
+    xor     cx, cx ; Minimum Column
+    mov     ax, 0x0007
+    int     0x33
+.NormalWidth:
     mov     [MouseSlowY], word 0x0008
     xor     ax, ax
     mov     al, [ScreenMax]
@@ -537,8 +567,10 @@ MouseActivate:
     shr     ax, 1
     mov     [MouseHomeY], ax
 
+    call    SwapMouseHandler
     call    MouseHome
     call    MouseShowPointer
+.NoMouse:
 ret
 
 %endif
@@ -663,7 +695,7 @@ xprocedure DoneCrt
         call    SwapMouseHandler
         xor     ax, ax
         mov     [MouseButtons], ax
-        mov     ax, 0x0000
+        ; mov     ax, 0x0000
         int     0x33
     .NoMouse:
     %endif
