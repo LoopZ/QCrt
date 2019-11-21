@@ -95,7 +95,7 @@ var
     {$IFDEF EnableMouse}
     MouseButtons     : integer;    { Number of buttons, 0 if no mouse }
     MouseVisible     : boolean;    { Visible state of mouse }
-    MouseSlowX       : word;       { Value to slow down movement }
+    MouseCellX       : word;       { Value to slow down movement }
     MouseSlowY       : word;       { Value to slow down movement }
     MouseClickSpeed  : word;       { Mouse double click speed }
     MouseHomeX       : integer;    { X Home position of mouse }
@@ -177,6 +177,12 @@ procedure MouseGotoXY(X, Y : byte);
 
 function MouseWhereX : byte;
 function MouseWhereY : byte;
+
+function MouseMove: boolean;
+function MouseClick : boolean;
+function MouseDoubleClick : boolean;
+function ReadMouse : integer;
+
 {$ENDIF}
 
 implementation
@@ -349,6 +355,10 @@ procedure MouseHide; external;
 procedure MouseGotoXY(X, Y : byte); external;
 function MouseWhereX : byte; external;
 function MouseWhereY : byte; external;
+function MouseMove: boolean; external;
+function MouseClick : boolean; external;
+function MouseDoubleClick : boolean; external;
+function ReadMouse : integer; external;
 
 {$ENDIF}
 

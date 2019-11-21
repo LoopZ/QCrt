@@ -64,9 +64,9 @@ DelayData:
     MouseHandler:
         DW 0, 0
     MouseLastState:
-        DW 0, 0, 0, 0, 0    ; Button State, X, Y, Movement X, Movement Y
-    MouseNewState:
-        DW 0, 0, 0, 0, 0
+        DW 0, 0, 0 ; Button State, X, Y
+    MouseCheckState:
+        DW 0, 0, 0, 0
 %endif
 
 %ifidn __OUTPUT_FORMAT__, obj
@@ -91,7 +91,7 @@ section Section_SHARED
     %ifdef EnableMouse
         extern MouseButtons     ; : integer;    { Number of buttons, 0 if no mouse }
         extern MouseVisible     ; : boolean;    { Visible state of mouse }
-        extern MouseSlowX       ; : word;       { Value to slow down movement }
+        extern MouseCellX       ; : word;       { Value to slow down movement }
         extern MouseSlowY       ; : word;       { Value to slow down movement }
         extern MouseClickSpeed  ; : word;       { Mouse double click speed }
         extern MouseHomeX       ; : integer;    { X Home position of mouse }
@@ -116,7 +116,7 @@ section Section_SHARED
     %ifdef EnableMouse
         MouseButtons    DB 0
         MouseVisible    DB FALSE
-        MouseSlowX      DW 0
+        MouseCellX      DW 0
         MouseSlowY      DW 0
         MouseClickSpeed DW 0
         MouseHomeX      DB 0
@@ -409,9 +409,6 @@ MouseEventHandler:
     push    ax
     pop     ds
 
-    mov     [MouseNewState], bx
-    mov     [MouseNewState + 6], si
-    mov     [MouseNewState + 8], di
     push bx
 
     ; Mouse Y
@@ -419,35 +416,48 @@ MouseEventHandler:
     xor     dx, dx
     mov     bx, [MouseSlowY]
     div     bx
-    mov     [MouseNewState+4], ax
     push    ax
 
     ; Mouse X
     mov     ax, cx
     xor     dx, dx
-    mov     bx, [MouseSlowX]
+    mov     bx, [MouseCellX]
     div     bx
-    mov     [MouseNewState+2], ax
     mov     cx, ax
     pop     dx
     pop     bx
 
-    mov     ax, [MouseLastState]
-    cmp     ax, bx
-    jne     .Trigger
     mov     ax, [MouseLastState + 2]
     cmp     ax, cx
-    jne     .Trigger
+    jne     .Changes
     mov     ax, [MouseLastState + 4]
     cmp     ax, dx
-    jne     .Trigger
-    jmp     .NoChange
-.Trigger:
+    jne     .Changes
+    mov     ax, [MouseLastState]
+    cmp     ax, bx
+    je      .NoChange
+.Changes:
+
+    ; Update Software Mouse Position
+    mov     [MouseLastState+4], dx
+    mov     [MouseLastState+2], cx
     mov     [MouseLastState], bx
 
-    ; Read & Clear Motion Counters
-    ; mov     ax, 0x000b
-    ; int     0x33
+    mov     al, [MouseCheckState]
+    cmp     al, 0x00
+    jne     .Frozen
+
+    mov     ax, [MouseLastState]
+    cmp     ax, bx
+    je      .NoFreeze
+    inc     al
+    mov     [MouseCheckState], al
+.NoFreeze:
+    mov     [MouseCheckState + 2], bx
+    mov     [MouseCheckState + 4], cx
+    mov     [MouseCheckState + 6], dx
+
+.Frozen:
 
 .NoChange:
     mov     sp, bp
@@ -489,17 +499,12 @@ MouseShowPointer:
 .NoMouse:
 ret
 
-MouseMove:
-   ; mov     cx, [MouseLastState + 2]
-   ; mov     dx, [MouseLastState + 4]
-
-    mov     ax, [MouseNewState + 2]
-    mov     [MouseLastState + 2], ax
-    mov     cx, [MouseSlowX]
+MouseSetPosition:
+    mov     ax, [MouseLastState + 2]
+    mov     cx, [MouseCellX]
     mul     cx
     mov     cx, ax
-    mov     ax, [MouseNewState + 4]
-    mov     [MouseLastState + 4], ax
+    mov     ax, [MouseLastState + 4]
     mov     dx, [MouseSlowY]
     mul     dx
     mov     dx, ax
@@ -509,14 +514,12 @@ ret
 
 MouseHome:
     mov     ax, [MouseHomeX]
-    mov     [MouseNewState + 2], ax
+    mov     [MouseLastState + 2], ax
     mov     ax, [MouseHomeY]
-    mov     [MouseNewState + 4], ax
-    call    MouseMove
+    mov     [MouseLastState + 4], ax
+    call    MouseSetPosition
     xor     ax, ax
-    mov     [MouseNewState], ax
-    mov     [MouseNewState + 6], ax
-    mov     [MouseNewState + 8], ax
+    mov     [MouseLastState], ax
 ret
 
 MouseInit:
@@ -541,14 +544,15 @@ MouseActivate:
     je      .NoMouse
     mov     ax, 0x0000
     int     0x33
+    mov     [MouseCheckState], byte 0x00
     mov     [MouseVisible], byte FALSE
-    mov     [MouseSlowX], word 0x0008
+    mov     [MouseCellX], word 0x0008
     ; Check for 40 Column Display
     mov     ax, [LastMode]
     cmp     al, 0x01
     ja      .NormalWidth
     ;mov     ax, 0x0010
-    ;mov     [MouseSlowX], ax
+    ;mov     [MouseCellX], ax
     mov     ax, 0x08
     mov     dx, 40 ; Decimal Column max
     mul     dx
@@ -1497,28 +1501,60 @@ xprocedure MouseGotoXY, 4
     mov     bl, ah
     xor     ah, ah
     xor     bh, bh
-	mov		[MouseNewState + 2], ax
-	mov		[MouseNewState + 4], bx
+	mov		[MouseLastState + 2], ax
+	mov		[MouseLastState + 4], bx
 
 .Done:
-	call 	MouseMove
+	call 	MouseSetPosition
 xret
 
 ; function WhereX: byte; external;
 xfunction MouseWhereX, byte
-	mov 	ax, [MouseNewState + 2]
+	mov 	ax, [MouseCheckState + 4]
 	inc		ax
 	xor		ah, ah
 xret
 
 ; function WhereY: byte; external;
 xfunction MouseWhereY, byte
-	mov 	ax, [MouseNewState + 4]
+	mov 	ax, [MouseCheckState + 6]
 	inc		ax
 	xor		ah, ah
 xret
 
+;function MouseMove: boolean; external;
+xfunction MouseMove, byte
+    mov  bx, [MouseCheckState + 4]
+    mov  cx, [MouseLastState + 2]
+    cmp  bx, cx
+    jne  .Changed
+    mov  bx, [MouseCheckState + 6]
+    mov  cx, [MouseLastState + 2]
+    cmp  bx, cx
+    je   .NoChange
+.Changed:
+    mov al, TRUE
+.NoChange:
+    xor ah, ah
+xret
 
+;function MouseClick : boolean; external;
+xfunction MouseClick, byte
+    mov  al, [MouseCheckState]
+xret
+
+;function MouseDoubleClick : boolean; external;
+xfunction MouseDoubleClick, byte
+    mov al, FALSE
+xret
+
+;function ReadMouse : integer; external;
+xfunction ReadMouse, word
+xret
+    xor  bx, bx
+    mov  [MouseCheckState], bx
+    mov  ax, [MouseCheckState + 2]
+    mov  [MouseCheckState + 2], bx
 %endif
 
 SkipOverQCrt:
