@@ -126,7 +126,7 @@ section Section_CODE
 ; ------------------- Internal Functions; Don't call them directly !!!!
 
 %ifdef EnableMouse
-    MouseDataSeg:
+    MouseDS:
         dw 0
 %endif
 
@@ -383,7 +383,6 @@ MouseEventHandler:
     ;    DI = Y Movement
     ;    DS = Mouse Driver Data Segment
 
-    pushf
     cli
     push    ds
     push    es
@@ -401,7 +400,7 @@ MouseEventHandler:
 ;    %endif
     mov     bp, sp
 
-    mov     ax, [cs:MouseDataSeg]
+    mov     ax, [CS:MouseDS]
     push    ax
     pop     ds
 
@@ -429,14 +428,19 @@ MouseEventHandler:
     ;mov     [MouseLastData + 2], cx
     ;mov     [MouseLastData + 4], dx
 
-    mov      cx, 500
+    mov      cx, [CS:MouseData]
+    inc      cx
+    mov      [CS:MouseData], cx
+    mov      ax, 500
+    add      cx, ax
     push     cx
     xcall    Sound
 
-    ;mov     [MouseHomeX], cl
     ;mov     [MouseHomeY], ch
 
 .NoChange:
+    mov     ax, 0x000b
+    int     0x33
     mov     sp, bp
 ;    %ifidn  TargetCPU, 8086
         pop     bp
@@ -453,7 +457,6 @@ MouseEventHandler:
     pop     es
     pop     ds
     sti
-    popf
 retf
 
 ; Sub procedure of MouseHandler.
@@ -488,10 +491,17 @@ retf
     mov     ch, al
 ret
 
+MouseData:
+    DW 0
+
 MouseHidePointer:
+        mov     ax, 0x0002
+        int     0x33
 ret
 
 MouseShowPointer:
+        mov     ax, 0x0001
+        int     0x33
 ret
 
 %endif
@@ -510,7 +520,8 @@ xfunction InitCrt, boolean
 	%ifdef EnableMouse
         push    ds
         pop     ax
-        mov     [cs:MouseDataSeg], ax
+        mov     [cs:MouseDS], ax
+        push    es
 
         mov     [MouseButtons], byte 0x00
         mov     [MouseVisible], byte FALSE
@@ -559,17 +570,16 @@ xfunction InitCrt, boolean
         mov     al, 0x01
     .MousePresent:
         xor     ah, ah
-        mov     [MouseButtons], al
+        mov     [MouseButtons], ax
         push    cs
         pop     ax
         mov     [MouseHandler + 2], ax
         mov     ax, MouseEventHandler
         mov     [MouseHandler], ax
-        mov     ax, 01111111b     ; Technically should be 01111111b
+        mov     ax, 01111111b
         mov     [MouseMask], ax
         call    SwapMouseHandler
-        mov     ax, 0x0001
-        int     0x33
+        call    MouseShowPointer
     .NoMousePresent:
 
     %endif
@@ -623,9 +633,8 @@ xprocedure DoneCrt
         je      .NoMouse
         call    MouseHidePointer
         call    SwapMouseHandler
-        mov     ax, 0x0002
-        int     0x33
-        mov     [MouseButtons], word 0x0000
+        xor     ax, ax
+        mov     [MouseButtons], ax
     .NoMouse:
     %endif
 
@@ -645,10 +654,13 @@ xprocedure DoneCrt
 .ValidCursor:
 	mov		[DirectVideo], byte FALSE
 	call  	MoveCursorNow
+	xcall   NoSound
 xret
 
 ; function KeyPressed : boolean; external;
 xfunction KeyPressed, boolean
+    mov     ax, [CS:MouseData]
+    mov     [MouseClickSpeed], ax
 	mov  	ah, 0x01
 	int  	0x16
 	mov  	al, FALSE
@@ -661,8 +673,6 @@ xret
 
 ; function ReadKey : char; external;
 xfunction ReadKey, char
-    mov     ax, [MouseLastData]
-    mov     [MouseClickSpeed], ax
 	mov  	ah, 0x00
 	int  	0x16
 	xor 	ah, ah
