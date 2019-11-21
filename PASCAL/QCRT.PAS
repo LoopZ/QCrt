@@ -95,10 +95,11 @@ var
     {$IFDEF EnableMouse}
     MouseButtons     : integer;    { Number of buttons, 0 if no mouse }
     MouseVisible     : boolean;    { Visible state of mouse }
-    MouseSlow        : word;       { Value to slow down movement }
+    MouseSlowX       : word;       { Value to slow down movement }
+    MouseSlowY       : word;       { Value to slow down movement }
     MouseClickSpeed  : word;       { Mouse double click speed }
-    MouseHomeX       : word;       { X Home position of mouse }
-    MouseHomeY       : word;       { Y Home position of mouse }
+    MouseHomeX       : integer;    { X Home position of mouse }
+    MouseHomeY       : integer;    { Y Home position of mouse }
     {$ENDIF}
 
 
@@ -171,6 +172,11 @@ procedure SetCursor(Shape : Word);
 {$IFDEF EnableMouse}
 procedure MouseShow;
 procedure MouseHide;
+
+procedure MouseGotoXY(X, Y : byte);
+
+function MouseWhereX : byte;
+function MouseWhereY : byte;
 {$ENDIF}
 
 implementation
@@ -340,6 +346,10 @@ procedure DelColumn; external;
 {$IFDEF EnableMouse}
 procedure MouseShow; external;
 procedure MouseHide; external;
+procedure MouseGotoXY(X, Y : byte); external;
+function MouseWhereX : byte; external;
+function MouseWhereY : byte; external;
+
 {$ENDIF}
 
 { initialization & finalization routines }
