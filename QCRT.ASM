@@ -140,6 +140,66 @@ section Section_CODE
         dw 0
 %endif
 
+%imacro PreWriteXY 0
+    %ifdef EnableMouse
+        pushf
+        cli
+        push    ax
+        ; push    bx
+        mov     ax, [CurrentXY]
+        mov     bl, [MouseLastState + 2]
+        mov     bh, [MouseLastState + 4]
+        cmp     ax, bx
+        jne     %%Safe
+        call    MouseHidePointer
+    %%Safe:
+        ; pop     bx
+        pop     ax
+        popf
+    %endif
+%endmacro
+
+%imacro PreWrite 0
+    %ifdef EnableMouse
+        pushf
+        cli
+        push    ax
+        call    MouseHidePointer
+        pop     ax
+        popf
+    %endif
+%endmacro
+
+%imacro PostWriteXY 0
+    %ifdef EnableMouse
+        pushf
+        cli
+        push    ax
+        ; push    bx
+        mov     ax, [CurrentXY]
+        mov     bl, [MouseLastState + 2]
+        mov     bh, [MouseLastState + 4]
+        cmp     ax, bx
+        jne     %%Safe
+        call    MouseShowPointer
+    %%Safe:
+        ; pop     bx
+        pop     ax
+        popf
+     %endif
+%endmacro
+
+%imacro PostWrite 0
+    %ifdef EnableMouse
+        pushf
+        cli
+        push    ax
+        call    MouseShowPointer
+        pop     ax
+        popf
+    %endif
+%endmacro
+
 ; Internal Crt Variable Data Initialization, called at any video mode change
 
 InitCrtData:
@@ -276,6 +336,8 @@ ret
 ; internal Write Character to Screen
 WriteRawCrtChar:
 	pushy   ax, bx, cx, dx
+    PreWriteXY
+
 	%ifdef DVSupport
 		mov		ah, [DirectVideo]
 		cmp		ah, TRUE
@@ -297,9 +359,11 @@ WriteRawCrtChar:
 		mov		cx, 0x0001
 		int		0x10
 	%endif
-	.Done:
-		call	MoveCursorNext
-		poppy	dx, cx, bx, ax
+
+.Done:
+    call	MoveCursorNext
+    PostWriteXY
+	poppy	dx, cx, bx, ax
 ret
 
 ; internal Font setting routine
@@ -479,7 +543,6 @@ MouseEventHandler:
 
     pop     es
     pop     ds
-    sti
     popf
 retf
 
@@ -599,6 +662,7 @@ MouseActivate:
 ret
 
 %endif
+
 ; ------------------------------- QCrt Interface Functions and Procedures
 
 ; function InitCrt : boolean; external;
@@ -1255,26 +1319,31 @@ xret
 ; -------- These functions require Direct and BIOS level versions ---------
 ; procedure ScrollUp(Rows :byte); external;
 xprocedure ScrollUp, 2
+    PreWrite
 	mov		ah, 6
 	mov		al, [STACKBP + 0]
 	mov		bh, [TextAttr]
 	mov		cx, [WindMin]
 	mov		dx, [WindMax]
 	int		0x10
+	PostWrite
 xret
 
 ; procedure ScrollDown(Rows :byte); external;
 xprocedure ScrollDown, 2
+    PreWrite
 	mov		ah, 7
 	mov		al, [STACKBP + 0]
 	mov		bh, [TextAttr]
 	mov		cx, [WindMin]
 	mov		dx, [WindMax]
 	int		0x10
+	PostWrite
 xret
 
 ; procedure ClrScr; external;
 xprocedure ClrScr
+    PreWrite
 	mov		ax, 0x0600
 	mov		bh, [TextAttr]
 	mov		cx, [WindMin]
@@ -1284,10 +1353,12 @@ xprocedure ClrScr
 	push 	ax
 	push	ax
 	xcall 	GotoXY
+	PostWrite
 xret
 
 ; procedure ClrEol; external;
 xprocedure ClrEol
+    PreWrite
 	mov		ax, 0x0600
 	mov		bh, [TextAttr]
 	mov		cx, [WindMin]
@@ -1298,10 +1369,12 @@ xprocedure ClrEol
 	mov		dx, [WindMax]
 	mov		dh, ch
 	int		0x10
+	PostWrite
 xret
 
 ; procedure InsLine; external;
 xprocedure InsLine
+    PreWrite
 	mov		ax, 0x0701
 	mov		bh, [TextAttr]
 	mov		cx, [WindMin]
@@ -1309,10 +1382,12 @@ xprocedure InsLine
 	mov		bl, [CurrentY]
 	add		ch, bl
 	int		0x10
+	PostWrite
 xret
 
 ; procedure DelLine; external;
 xprocedure DelLine
+    PreWrite
 	mov		ax, 0x0601
 	mov		bh, [TextAttr]
 	mov		cx, [WindMin]
@@ -1320,10 +1395,12 @@ xprocedure DelLine
 	mov		bl, [CurrentY]
 	add		ch, bl
 	int		0x10
+	PostWrite
 xret
 
 ; procedure InsChar; external;
 xprocedure InsChar
+    PreWrite
 	mov		dl, [CurrentX]
 	push	dx
 	mov		ax, [WindMin]
@@ -1360,10 +1437,12 @@ xprocedure InsChar
 	mov		bl, [TextAttr]
 	mov		cx, 0x0001
 	int		0x10
+	PostWrite
 xret
 
 ; procedure DelChar; external;
 xprocedure DelChar
+    PreWrite
 	mov		al, [CurrentX]
 	push 	ax
 	mov		dx, [WindMin]
@@ -1402,10 +1481,12 @@ xprocedure DelChar
 	pop		ax
 	mov		[CurrentX], al
 	call	MoveCursorMaybe
+	PostWrite
 xret
 
 ; procedure InsColumn; external;
 xprocedure InsColumn
+    PreWrite
 	mov		dh, [CurrentY]
 	push 	dx
 	mov		cx, [WindMax]
@@ -1425,10 +1506,12 @@ xprocedure InsColumn
 	pop		dx
 	mov		[CurrentY], dh
 	call	MoveCursorMaybe
+	PostWrite
 xret
 
 ; procedure DelColumn; external;
 xprocedure DelColumn
+    PreWrite
 	mov		dh, [CurrentY]
 	push 	dx
 	mov		cx, [WindMax]
@@ -1448,6 +1531,7 @@ xprocedure DelColumn
 	pop		dx
 	mov		[CurrentY], dh
 	call	MoveCursorMaybe
+	PostWrite
 xret
 
 ; procedure ScrollLeft(Columns :byte); external;
@@ -1532,6 +1616,7 @@ xret
 
 ; function WhereX: byte; external;
 xfunction MouseWhereX, byte
+    pushf
     cli
     mov     ax, [MouseCheckState + 2]
     mov     bl, [MouseFrozen]
@@ -1543,11 +1628,12 @@ xfunction MouseWhereX, byte
     mov     ax, cx
     mov     [MouseCheckState + 2], ax
 .Done:
-    sti
+    popf
 xret
 
 ; function WhereY: byte; external;
 xfunction MouseWhereY, byte
+    pushf
     cli
     mov     ax, [MouseCheckState + 4]
     mov     bl, [MouseFrozen]
@@ -1559,11 +1645,12 @@ xfunction MouseWhereY, byte
     mov     ax, cx
     mov     [MouseCheckState + 4], ax
 .Done:
-    sti
+    popf
 xret
 
 ;function MouseMove: boolean; external;
 xfunction MouseMove, byte
+    pushf
     cli
     mov     al, [MouseFrozen]
     cmp     al, TRUE
@@ -1584,7 +1671,7 @@ xfunction MouseMove, byte
 .NoChange:
     mov     al, FALSE
 .Done:
-    sti
+    popf
 xret
 
 ;function MouseClick : boolean; external;
@@ -1604,6 +1691,7 @@ xret
 
 ;function ReadMouse : integer; external;
 xfunction ReadMouse, word
+    pushf
     cli
     mov  ax, [MouseCheckState]
     mov  bx, [MouseLastState]
@@ -1619,7 +1707,7 @@ xfunction ReadMouse, word
     mov  [MouseCheckState + 2], cx
     mov  [MouseCheckState + 4], dx
 .Done:
-    sti
+    popf
 xret
 
 %endif
