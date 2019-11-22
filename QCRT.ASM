@@ -69,6 +69,8 @@ DelayData:
         DB 0
     MouseCheckState:
         DW 0, 0, 0
+    MouseShowLevel:
+        DW 0
 
 %endif
 
@@ -484,22 +486,38 @@ retf
 MouseHidePointer:
     mov     ax, [MouseButtons]
     cmp     ax, 0x0000
-    je      .NoMouse
+    je      MouseSetVisible
+    mov     ax, [MouseShowLevel]
+    dec     ax
+    mov     [MouseShowLevel], ax
+    cmp     ax, 0
+    jne     MouseSetVisible
     mov     ax, 0x0002
     int     0x33
-.NoMouse:
-    mov     [MouseVisible], byte FALSE
-ret
+    jmp     MouseSetVisible
 
 MouseShowPointer:
     mov     ax, [MouseButtons]
     cmp     ax, 0x0000
-    je      .NoMouse
+    je      MouseSetVisible
+    mov     ax, [MouseShowLevel]
+    inc     ax
+    mov     [MouseShowLevel], ax
+    cmp     ax, 1
+    jne     MouseSetVisible
     mov     ax, 0x0001
     int     0x33
+    jmp     MouseSetVisible
+
+MouseSetVisible:
+    mov     ax, [MouseShowLevel]
+    cmp     ax, 0
+    jg      .SetVisible
+    mov     [MouseVisible], byte FALSE
+    ret
+.SetVisible:
     mov     [MouseVisible], byte TRUE
-.NoMouse:
-ret
+    ret
 
 MouseSetPosition:
     mov     ax, [MouseLastState + 2]
@@ -548,6 +566,7 @@ MouseActivate:
     int     0x33
     mov     [MouseFrozen], byte FALSE
     mov     [MouseVisible], byte FALSE
+    mov     [MouseShowLevel], word 0
     mov     [MouseCellX], word 0x0008
     ; Check for 40 Column Display
     mov     ax, [LastMode]
@@ -600,6 +619,7 @@ xfunction InitCrt, boolean
 
         mov     [MouseButtons], word 0x0000
         mov     [MouseVisible], byte FALSE
+        mov     [MouseShowLevel], word 0
         mov     [MouseClickSpeed], word 0x0002
 
         ; first test valid Mouse Interrupt Vector
