@@ -20,14 +20,12 @@ rem Make First Dos Demo
 :TPRetry
 rem Make TurboPascal 7.0 Dos Demo
 %ASM% QCRT.ASM -fobj -D%TPV% -O9 -o PASCAL\QCRT.OBJ
-%TPC% /OPASCAL /b PASCAL\QCRT.PAS
-if not exist PASCAL\QCRT.TPU goto TPFailed
-rem %TPC% /OPASCAL /UPASCAL /EBIN DEMOS\DEMO_004.PAS
+%TPC% /OPASCAL /B /UPASCAL /EBIN DEMOS\DEMO_004.PAS
+if not exist BIN\DEMO_004.EXE goto TPFailed
 
 rem Mouse Support
 :MouseTests
 %ASM% QCRT.ASM -fobj -D%TPV% -DEnableMouse -O9 -o PASCAL\QCRT.OBJ
-rem %TPC% /OPASCAL /B /DEnableMouse PASCAL\QCRT.PAS
 %TPC% /OPASCAL /B /UPASCAL /EBIN /DEnableMouse DEMOS\DEMO_005.PAS
 goto DEMOS
 
