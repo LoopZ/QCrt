@@ -145,7 +145,7 @@ section Section_CODE
         pushf
         cli
         push    ax
-        ; push    bx
+        push    bx
         mov     ax, [CurrentXY]
         mov     bl, [MouseLastState + 2]
         mov     bh, [MouseLastState + 4]
@@ -153,7 +153,7 @@ section Section_CODE
         jne     %%Safe
         call    MouseHidePointer
     %%Safe:
-        ; pop     bx
+        pop     bx
         pop     ax
         popf
     %endif
@@ -175,7 +175,7 @@ section Section_CODE
         pushf
         cli
         push    ax
-        ; push    bx
+        push    bx
         mov     ax, [CurrentXY]
         mov     bl, [MouseLastState + 2]
         mov     bh, [MouseLastState + 4]
@@ -183,7 +183,7 @@ section Section_CODE
         jne     %%Safe
         call    MouseShowPointer
     %%Safe:
-        ; pop     bx
+        pop     bx
         pop     ax
         popf
      %endif
@@ -361,8 +361,8 @@ WriteRawCrtChar:
 	%endif
 
 .Done:
-    call	MoveCursorNext
     PostWriteXY
+    call	MoveCursorNext
 	poppy	dx, cx, bx, ax
 ret
 
@@ -547,6 +547,8 @@ MouseEventHandler:
 retf
 
 MouseHidePointer:
+    pushf
+    cli
     mov     ax, [MouseButtons]
     cmp     ax, 0x0000
     je      MouseSetVisible
@@ -560,6 +562,8 @@ MouseHidePointer:
     jmp     MouseSetVisible
 
 MouseShowPointer:
+    pushf
+    cli
     mov     ax, [MouseButtons]
     cmp     ax, 0x0000
     je      MouseSetVisible
@@ -577,12 +581,16 @@ MouseSetVisible:
     cmp     ax, 0
     jg      .SetVisible
     mov     [MouseVisible], byte FALSE
+    popf
     ret
 .SetVisible:
     mov     [MouseVisible], byte TRUE
+    popf
     ret
 
 MouseSetPosition:
+    pushf
+    cli
     mov     ax, [MouseLastState + 2]
     mov     cx, [MouseCellX]
     mul     cx
@@ -593,9 +601,12 @@ MouseSetPosition:
     mov     dx, ax
     mov     ax, 0x0004
     int     0x33
-ret
+    popf
+    ret
 
 MouseHome:
+    pushf
+    cli
     mov     ax, [MouseHomeX]
     mov     [MouseLastState + 2], ax
     mov     ax, [MouseHomeY]
@@ -603,9 +614,12 @@ MouseHome:
     call    MouseSetPosition
     xor     ax, ax
     mov     [MouseLastState], ax
-ret
+    popf
+    ret
 
 MouseInit:
+    pushf
+    cli
     push    cs
     pop     ax
     mov     [MouseHandler + 2], ax
@@ -618,6 +632,7 @@ MouseReset:
     mov     ax, [MouseButtons]
     cmp     ax, 0x0000
     jne      .MousePresent
+    popf
     ret
 .MousePresent:
     call    SwapMouseHandler
@@ -659,7 +674,8 @@ MouseActivate:
     call    MouseHome
     call    MouseShowPointer
 .NoMouse:
-ret
+    popf
+    ret
 
 %endif
 
@@ -1582,6 +1598,8 @@ xret
 
 ; procedure GotoXY(X, Y : byte); external;
 xprocedure MouseGotoXY, 4
+    pushf
+    cli
 	mov		al, [STACKBP + 2]
 	mov		ah, [STACKBP + 0]
 	dec		al
@@ -1612,6 +1630,7 @@ xprocedure MouseGotoXY, 4
 
 .Done:
 	call 	MouseSetPosition
+	popf
 xret
 
 ; function WhereX: byte; external;
