@@ -71,6 +71,8 @@ DelayData:
         DW 0, 0, 0
     MouseShowLevel:
         DW 0
+    MouseHiddenFlag:
+        DW 0
 
 %endif
 
@@ -151,6 +153,7 @@ section Section_CODE
         mov     bh, [MouseLastState + 4]
         cmp     ax, bx
         jne     %%Safe
+        mov     [MouseHiddenFlag], byte TRUE
         call    MouseHidePointer
     %%Safe:
         pop     bx
@@ -164,6 +167,7 @@ section Section_CODE
         pushf
         cli
         push    ax
+        mov     [MouseHiddenFlag], byte TRUE
         call    MouseHidePointer
         pop     ax
         popf
@@ -175,15 +179,12 @@ section Section_CODE
         pushf
         cli
         push    ax
-        push    bx
-        mov     ax, [CurrentXY]
-        mov     bl, [MouseLastState + 2]
-        mov     bh, [MouseLastState + 4]
-        cmp     ax, bx
+        mov     al, [MouseHiddenFlag]
+        mov     [MouseHiddenFlag], byte FALSE
+        cmp     al, TRUE
         jne     %%Safe
         call    MouseShowPointer
     %%Safe:
-        pop     bx
         pop     ax
         popf
      %endif
@@ -194,7 +195,11 @@ section Section_CODE
         pushf
         cli
         push    ax
+        mov     al, [MouseHiddenFlag]
+        mov     [MouseHiddenFlag], byte FALSE
+        cmp     al, TRUE
         call    MouseShowPointer
+    %%Safe:
         pop     ax
         popf
     %endif
@@ -328,7 +333,7 @@ MoveCursorNext:
 	je		.InsideWindow
 	sub		dh, bh
 	mov		[CurrentY], dh
-	xcall LineFeed
+	xcall   LineFeed
 .InsideWindow:
 	call	MoveCursorMaybe
 ret
