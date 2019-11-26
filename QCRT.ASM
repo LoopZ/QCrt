@@ -8,11 +8,11 @@
 ; This assembly language library uses the pascal calling convention. All calls
 ; are far calls. Data parameters passed to procedure and functions are pushed
 ; onto the stack in reverse order and are popped automatically by the function
-; or procedure on their return. Simple return values are usually set in AL, AX
-; or in the DX:AX pair. DS, SS, SP, BP are preserved. However, the state of all
-; other registers are not guaranteed. So, if calling this library from a
-; language other than Pascal, such as from more assembly code, you must take
-; care of preserving any registers and values you wish to retain yourself!
+; or procedure on their return. Simple function return values are usually set
+; in AL, AX or in the DX:AX pair. DS, SS, SP, BP are preserved. However, the
+; state of all other registers are not guaranteed. So, if calling this library
+; from a language other than Pascal, such as from more assembly code, you must
+; take care of preserving any registers and values you wish to retain yourself!
 
 %idefine QCrt 9.1
 
@@ -73,6 +73,10 @@ DelayData:
         DW 0
     MouseHiddenFlag:
         DW 0
+    MouseButtonTrack:
+        times 16 DW 0
+    MouseDoubleFlag:
+        DB 0
 
 %endif
 
@@ -648,6 +652,8 @@ MouseActivate:
     mov     ax, 0x0000
     int     0x33
     mov     [MouseFrozen], byte FALSE
+    mov     [MouseDoubleFlag], byte FALSE
+    mov     [MouseClickSpeed], word 0x0010
     mov     [MouseVisible], byte FALSE
     mov     [MouseShowLevel], word 0
     mov     [MouseCellX], word 0x0008
@@ -1700,17 +1706,22 @@ xret
 
 ;function MouseClick : boolean; external;
 xfunction MouseClick, byte
-    mov  al, False
+    mov  al, FALSE
     mov  ah, [MouseFrozen]
     cmp  ah, FALSE
     je   .Done
-    mov  al, True
+    mov  al, TRUE
 .Done:
 xret
 
 ;function MouseDoubleClick : boolean; external;
 xfunction MouseDoubleClick, byte
-    mov al, FALSE
+    mov  al, FALSE
+    mov  ah, [MouseFrozen]
+    cmp  ah, FALSE
+    je   .Done
+    mov  al, [MouseDoubleFlag]
+.Done:
 xret
 
 ;function ReadMouse : integer; external;
@@ -1722,9 +1733,10 @@ xfunction ReadMouse, word
     cmp  ax, bx
     jne  .StayFrozen
     mov  [MouseFrozen], byte FALSE
+    mov  [MouseDoubleFlag], byte FALSE
     jmp  .Done
  .StayFrozen:
-    mov  [MouseFrozen], byte 0x01
+    mov  [MouseFrozen], byte TRUE
     mov  cx, [MouseLastState + 2]
     mov  dx, [MouseLastState + 4]
     mov  [MouseCheckState], bx

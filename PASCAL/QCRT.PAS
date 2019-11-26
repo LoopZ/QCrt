@@ -3,9 +3,9 @@
     Released Under GPL v2.0 License.
 }
 
-unit QCrt; { QuickCrt 9, Crt Video Unit }
+unit QCrt; { QuickCrt 9.x, Crt Video Unit }
 
-{$D-,I-,S-,F+}
+{$I QCRT.DEF}
 
 interface
 

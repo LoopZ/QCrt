@@ -1,5 +1,8 @@
 @echo off
 
+set OPTIONS=
+set EXIT_CODE=
+
 set TPV=TP70
 set ASM=NASM
 set TPC=TPC
@@ -19,14 +22,21 @@ rem Make First Dos Demo
 
 :TPRetry
 rem Make TurboPascal 7.0 Dos Demo
-%ASM% QCRT.ASM -fobj -D%TPV% -O9 -o PASCAL\QCRT.OBJ
-%TPC% /OPASCAL /B /UPASCAL /EBIN DEMOS\DEMO_004.PAS
+cd pascal
+call mkunits.bat
+cd ..
+if not %EXIT_CODE%" == "" goto TPError
+%TPC% /OPASCAL /UPASCAL /EBIN DEMOS\DEMO_004.PAS
 if not exist BIN\DEMO_004.EXE goto TPFailed
 
 rem Mouse Support
 :MouseTests
-%ASM% QCRT.ASM -fobj -D%TPV% -DEnableMouse -O9 -o PASCAL\QCRT.OBJ
-%TPC% /OPASCAL /B /UPASCAL /EBIN /DEnableMouse DEMOS\DEMO_005.PAS
+SET OPTIONS=/DEnableMouse
+cd pascal
+call mkunits.bat
+cd ..
+if not "%EXIT_CODE%" == "" goto TPError
+%TPC% /OPASCAL /UPASCAL /EBIN %OPTIONS% DEMOS\DEMO_005.PAS
 goto DEMOS
 
 :TPFailed
@@ -45,3 +55,5 @@ goto Done
 set ASM=
 set TPC=
 set TPV=
+set EXIT_CODE=
+set OPTIONS=
