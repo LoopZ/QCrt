@@ -304,8 +304,8 @@ end;
 
 {$L QCRT.OBJ}
 
-function InitCrt : boolean; external;
-procedure DoneCrt; external;
+function InitQCrt : boolean; external;
+procedure DoneQCrt; external;
 function KeyPressed : boolean; external;
 function ReadKey : char; external;
 function KeyPressedEnhanced : boolean; external;
@@ -370,12 +370,12 @@ begin
     Assign(Input, '');
     ReWrite(Output);
     Reset(Input);
-    DoneCrt;
+    DoneQCrt;
 end;
 
 procedure UnitInit;
 begin
-    if not InitCrt then Halt(10); { Internal Error }
+    if not InitQCrt then Halt(10); { Internal Error }
     OldExitProc := ExitProc;
     ExitProc := @UnitFinal;
     AssignCrt(Output);

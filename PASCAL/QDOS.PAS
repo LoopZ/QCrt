@@ -9,16 +9,12 @@ unit QDOS; { QuickCrt 9.x, DOS Unit }
 
 interface
 
-    function XMS_Avail : boolean;
-
 implementation
 
 var
     OldExitProc : Pointer;
 
 {$L QDOS.OBJ}
-
-function XMS_Avail : boolean; external;
 
 function InitQDOS : boolean; external;
 procedure DoneQDOS; external;

@@ -14,7 +14,7 @@
 ; from a language other than Pascal, such as from more assembly code, you must
 ; take care of preserving any registers and values you wish to retain yourself!
 
-%idefine QCrt 9.1 - QDOS
+%idefine QCrt 9.1 - QStrings
 
 %ifndef TargetOS
     %idefine TargetOS DOS

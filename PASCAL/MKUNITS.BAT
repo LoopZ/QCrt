@@ -27,6 +27,8 @@ deltree /y *.obj *.tpu >NUL
 call %0 make QCRT
 call %0 make QSTRINGS
 call %0 make QDOS
+call %0 make QEMS
+call %0 make QXMS
 
 goto DONE
 :MAKE

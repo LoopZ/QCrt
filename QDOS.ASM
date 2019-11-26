@@ -35,11 +35,6 @@
 ; Internal Data Segment
 section Section_DATA
 
-    XMS_Is_Avail:
-        db  FALSE
-    XMS_Driver:
-        dw  0, 0
-
 %ifidn __OUTPUT_FORMAT__, obj
 
 section Section_SHARED
@@ -51,30 +46,8 @@ section Section_SHARED
 section Section_CODE
 
 ; ------------------- Internal Functions; Don't call them directly !!!!
-Set_XMS_Data:
-    mov         ax, 0x4300
-    int         0x2f
-    mov         bl, FALSE
-    cmp         al, 0x80
-    jne         .NoXMS
-    push        es
-    mov         ax, 4310h
-    int         0x2f
-    mov         [XMS_Driver], bx
-    mov         [XMS_Driver + 2], es
-    pop         es
-    mov         bl, TRUE
-.NoXMS:
-    mov         [XMS_Is_Avail], bl
-ret
-
 ; ------------------- Exported Functions
-xfunction XMS_Avail, boolean
-    mov         al, [XMS_Is_Avail]
-xret
-
 xfunction InitQDOS, boolean
-    call        Set_XMS_Data
     mov         al, TRUE
 xret
 

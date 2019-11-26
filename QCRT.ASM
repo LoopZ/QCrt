@@ -692,8 +692,8 @@ MouseActivate:
 
 ; ------------------------------- QCrt Interface Functions and Procedures
 
-; function InitCrt : boolean; external;
-xfunction InitCrt, boolean
+; function InitQCrt : boolean; external;
+xfunction InitQCrt, boolean
 	mov 	[CheckBreak], byte FALSE
 	mov 	[CheckScroll], byte TRUE
 	mov 	[DoubleWide], byte FALSE
@@ -802,8 +802,8 @@ xfunction InitCrt, boolean
 	cmp		ax, TRUE
 xret
 
-; procedure DoneCrt;
-xprocedure DoneCrt
+; procedure DoneQCrt;
+xprocedure DoneQCrt
     %ifdef EnableMouse
         mov     ax, [MouseButtons]
         cmp     ax, 0x0000
@@ -1751,5 +1751,5 @@ xret
 SkipOverQCrt:
 %ifidni __OUTPUT_FORMAT__, bin
 	%warning Auto-initialize QuickCrt routines.
-	xcall InitCrt
+	pushcall InitQCrt
 %endif
