@@ -149,14 +149,22 @@
 
 %imacro pushy 1-*
   %rep  %0
-        push    %1
+        %ifidni %1, f
+            pushf
+        %else
+            push    %1
+        %endif
   %rotate 1
   %endrep
 %endmacro
 
 %imacro poppy 1-*
   %rep  %0
-        pop    %1
+        %ifidni %1, f
+            popf
+        %else
+            pop     %1
+        %endif
   %rotate 1
   %endrep
 %endmacro
@@ -479,3 +487,15 @@
     WriteChar
     ret
 %endmacro
+
+%ifidni __OUTPUT_FORMAT__, bin
+    %imacro PrefixSeg 1
+        push    cs
+        pop     %1
+    %endmacro
+
+    %imacro DataSeg 1
+        push    cs
+        pop     %1
+    %endmacro
+%endif

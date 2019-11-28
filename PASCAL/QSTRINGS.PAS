@@ -11,6 +11,9 @@ interface
 
 implementation
 
+uses
+    QASCIIZ;
+
 var
     OldExitProc : Pointer;
 

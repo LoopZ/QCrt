@@ -37,6 +37,31 @@ section Section_DATA
 
 %ifidn __OUTPUT_FORMAT__, obj
 
+    ProgramPrefixSeg:
+        dw  0           ; Program prefix segment
+    UnitDataSeg:
+        dw  0           ; Data Segment
+
+    %imacro PrefixSeg 1
+        %ifidni %1, ax
+            mov     ax, [ProgramPrefixSeg]
+        %else
+            push    ax
+            mov     ax, [ProgramPrefixSeg]
+            pop     ax
+        %endif
+    %endmacro
+
+    %imacro DataSeg 1
+        %ifidni %1, ax
+            mov     ax, [UnitDataSeg]
+        %else
+            push    ax
+            mov     ax, [UnitDataSeg]
+            pop     ax
+        %endif
+    %endmacro
+
 section Section_SHARED
 
 %else
@@ -46,17 +71,73 @@ section Section_SHARED
 section Section_CODE
 
 ; ------------------- Internal Functions; Don't call them directly !!!!
+%ifidni __OUTPUT_FORMAT__, bin
+SearchEnvTable:
+    pushy       ax, bx, di
+    cld
+    PrefixSeg   es
+    mov         es, [es:0x2c]
+    mov         si, 0x0000
+    mov         bx, di
+.Compare:
+    mov         di, bx
+.CompareLoop:
+    mov         ah, [di]
+    inc         di
+    cmp         ah, 0x00
+    je          .Maybe
+    es          lodsb
+    cmp         al, 0x00
+    je          .NotFound
+    cmp         al, ah
+    je          .CompareLoop
+.Mismatch:
+    cmp         al, 0x00
+    je          .Compare
+    es          lodsb
+    jmp         .Mismatch
+.Maybe:
+    es          lodsb
+    cmp         al, 0x00
+    je          .NotFound
+    cmp         al, '='
+    jne         .Mismatch
+.Found:
+    clc
+    jmp         .Done
+.NotFound:
+    stc
+.Done:
+    poppy       di, bx, ax
+    ret
+%endif
+
 ; ------------------- Exported Functions
-xfunction InitQDOS, boolean
+
+
+; function InitQDOS(PSP : word) : boolean; external;
+xfunction InitQDOS, boolean, 2
+	mov		    ax, [STACKBP + 0]
+    mov         [ProgramPrefixSeg], ax
+    mov         [UnitDataSeg], ds
+    PrefixSeg     ax
+    cmp         ax, 0x0000
+    je          .Error
+
+.AOkay:
     mov         al, TRUE
+    jmp         .Done
+.Error:
+    mov         al, FALSE
+.Done:
 xret
 
 xprocedure DoneQDOS
 xret
-
 
 SkipOverQDOS:
 %ifidni __OUTPUT_FORMAT__, bin
 	%warning Auto-initialize QuickDOS routines.
 	pushcall InitQDOS
 %endif
+

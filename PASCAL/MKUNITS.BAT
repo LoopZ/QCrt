@@ -1,7 +1,16 @@
 @echo off
 
-if not "%1" == "" goto %1
+set SELF=%0
 
+if not "%1" == "" goto %1
+goto START
+
+:BUILDALL
+:REBUILD
+shift
+deltree /y *.obj *.tpu >NUL
+
+:START
 set OLD_TPC=
 if not "%TPC%" == "" goto TPCset
 set OLD_TPC=%TPC%
@@ -22,16 +31,23 @@ set ASM=NASM
 if exist %DOSDIR%\LINKS\%ASM%.BAT set ASM=call %ASM%
 :ASMset
 
-deltree /y *.obj *.tpu >NUL
-
-call %0 make QCRT
-call %0 make QSTRINGS
-call %0 make QDOS
-call %0 make QEMS
-call %0 make QXMS
+call %SELF% make QCRT
+call %SELF% make QASCIIZ
+call %SELF% make QSTRINGS
+call %SELF% make QDOS
+call %SELF% make QEMS
+call %SELF% make QXMS
+call %SELF% make QCLASS
+call %SELF% make QLISTS
 
 goto DONE
 :MAKE
+
+if exist %2.TPU goto Present
+:Needed
+
+deltree /y %2.obj %2.tpu >NUL
+
 set AOPT=
 set TOPT=
 if "%OPTIONS%" == "" goto NoOptions
@@ -41,13 +57,16 @@ echo %OPTIONS% | vstr /n /s '-' '/' | set /p TOPT=
 set TOPT=%OPTIONS%
 
 :NoOptions
+if not exist ..\%2.ASM goto NoASM
 echo %ASM% ..\%2.ASM -I.. -fobj -D%TPV% %AOPT% -O9 -o %2.OBJ
 %ASM% ..\%2.ASM -I.. -fobj -D%TPV% %AOPT% -O9 -o %2.OBJ
 if not exist %2.OBJ goto ErrorExit
+:NoASM
 echo %TPC% /B %TOPT% %2.PAS
 %TPC% /B %TOPT% %2.PAS
 if not exist %2.TPU goto ErrorExit
 
+:Present
 set EXIT_CODE=
 verrlvl 0
 goto END
