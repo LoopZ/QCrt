@@ -52,6 +52,7 @@
 
 %ifdef TurboPascal70
     %undef TurboPascal55
+    %undef TP55
 %endif
 
 %ifndef EnableMouse
@@ -66,7 +67,10 @@
 %ifidni __OUTPUT_FORMAT__, obj
     %idefine FarCalls
 %else
+    %undef TP55
     %undef TurboPascal55
+    %undef TP70
+    %undef TurboPascal70
     %warning "Binary COM file creation mode."
     %ifdef SaveAllRegs
         %warning "All none return value registers are preserved."

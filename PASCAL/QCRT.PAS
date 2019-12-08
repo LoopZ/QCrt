@@ -363,6 +363,9 @@ function ReadMouse : integer; external;
 {$ENDIF}
 
 { initialization & finalization routines }
+
+procedure DoneQCRT; external;
+
 procedure UnitFinal;
 begin
     ExitProc := OldExitProc;
@@ -370,12 +373,14 @@ begin
     Assign(Input, '');
     ReWrite(Output);
     Reset(Input);
-    DoneQCrt;
+    DoneQCRT;
 end;
+
+function InitQCRT : boolean; external;
 
 procedure UnitInit;
 begin
-    if not InitQCrt then Halt(10); { Internal Error }
+    if not InitQCRT then Halt(10); { Internal Error }
     OldExitProc := ExitProc;
     ExitProc := @UnitFinal;
     AssignCrt(Output);

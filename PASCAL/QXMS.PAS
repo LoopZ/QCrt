@@ -7,6 +7,7 @@ unit QXMS; { QuickCrt 9.x, XMS Unit }
 
 {$I QCRT.DEF}
 
+
 interface
 
     function XMS_Avail : boolean;
@@ -20,15 +21,17 @@ var
 
 function XMS_Avail : boolean; external;
 
-function InitQXMS : boolean; external;
+{ initialization & finalization routines }
+
 procedure DoneQXMS; external;
 
-{ initialization & finalization routines }
 procedure UnitFinal;
 begin
     ExitProc := OldExitProc;
     DoneQXMS;
 end;
+
+function InitQXMS : boolean; external;
 
 procedure UnitInit;
 begin

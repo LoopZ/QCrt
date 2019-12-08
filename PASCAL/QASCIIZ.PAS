@@ -23,9 +23,6 @@ interface
 
 implementation
 
-var
-    OldExitProc : Pointer;
-
 {$L QASCIIZ.OBJ}
 
 function LookupASCIIZ(Data : pointer; ID : String) : string;
@@ -81,23 +78,4 @@ begin
 	end;
 end;
 
-function InitQASCIIZ : boolean; external;
-procedure DoneQASCIIZ; external;
-
-{ initialization & finalization routines }
-procedure UnitFinal;
-begin
-    ExitProc := OldExitProc;
-    DoneQASCIIZ;
-end;
-
-procedure UnitInit;
-begin
-    if not InitQASCIIZ then Halt(10); { Internal Error }
-    OldExitProc := ExitProc;
-    ExitProc := @UnitFinal;
-end;
-
-begin
-    UnitInit;
 end.

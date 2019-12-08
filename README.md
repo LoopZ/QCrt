@@ -16,4 +16,6 @@ Requirements:
 	NASM 2.11.08 for DOS
 	286+ CPU (TargetCPU, 8086 compitibility untested)
 	FreeDOS, DosBox or other DOS based operating system.
-	TurboPascal 5.5 (Verion 7.0 recommended) for Pascal
+	TurboPascal 5.5 (Verion 7.0 recommended) for Pascal.
+	V8Power Tools for DOS.
+

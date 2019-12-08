@@ -39,6 +39,7 @@ call %SELF% make QEMS
 call %SELF% make QXMS
 call %SELF% make QCLASS
 call %SELF% make QLISTS
+call %SELF% make QFILES
 
 goto DONE
 :MAKE

@@ -16,23 +16,28 @@ var
 
 {$L QEMS.OBJ}
 
-function InitQEMS : boolean; external;
+{ initialization & finalization routines }
+
 procedure DoneQEMS; external;
 
-{ initialization & finalization routines }
 procedure UnitFinal;
 begin
     ExitProc := OldExitProc;
     DoneQEMS;
 end;
 
+function InitQEMS : boolean; external;
+
 procedure UnitInit;
 begin
     if not InitQEMS then Halt(10); { Internal Error }
-    OldExitProc := ExitProc;
-    ExitProc := @UnitFinal;
+    {$IFDEF finalialization}
+        OldExitProc := ExitProc;
+        ExitProc := @UnitFinal;
+    {$ENDIF}
 end;
 
 begin
     UnitInit;
+
 end.
