@@ -407,6 +407,14 @@ asm
   INT  21h
   XOR  AH, AH
   MOV  AL, CH
+  { DOSBox Bug Fix }
+@1:
+  CMP   AL, 24
+  JBE   @2
+  SUB   AL, 24
+  JMP   @1
+@2:
+  { End Fix }
   LES  DI, Hour
   STOSW
   MOV  AL, CL

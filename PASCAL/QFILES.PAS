@@ -26,6 +26,7 @@ uses QClass, QDOS;
     flRead     = $0020; { File can be read }
     flWrite    = $0040; { File can be written }
     flRandom   = $0060; { File can be read or written }
+    flModified = $0080; { File has been modified since opened }
 
     { SetIOResult return commands }
     fcOK       = $00;
@@ -80,6 +81,7 @@ uses QClass, QDOS;
       function  SeekSof: Boolean;
       function  SeekEof: Boolean;
       procedure SetFileMode ( AMode : word );
+      function Modified : boolean;
     { Should never, ever need overridden (they all call BlockRead) }
       procedure Insert(ACount : longint);
       procedure Delete(ACount : longint);
@@ -155,7 +157,7 @@ uses QClass, QDOS;
       procedure Rewrite; virtual;
       procedure Seek(AFilePos: Longint); virtual;
       procedure Truncate; virtual;
-      function GetName : String;
+      function GetName : String; virtual;
     end;
 
 function NewAbstractFile(AOwner:PObject) : PObject;
@@ -443,6 +445,11 @@ implementation
         2 : Flags := Flags or flRandom;
       end;
     end;
+
+  function TAbstractFile.Modified : boolean;
+  begin
+    Modified := Flags and flModified = flModified;
+  end;
 
   procedure TAbstractFile.Insert(ACount : longint);
     var
@@ -967,6 +974,7 @@ function TAbstractFile.Read ( const AStr; AMax : word ) : Boolean;
       inherited BlockWrite(ABuf, ACount, AResult);
       if (Flags and flError <> flError) then
         begin
+          Flags := Flags or flModified;
           repeat
             P := @ABuf;
             System.BlockWrite(FRec, P^, ACount, AResult);
@@ -990,6 +998,7 @@ function TAbstractFile.Read ( const AStr; AMax : word ) : Boolean;
           if (Action <> fcAbort) then
             Flags := Flags and (Not flOpened);
           if (Action <> fcAbort) then Ptr := 0;
+          Flags := Flags and (not flModified);
         end;
     end;
 
@@ -1078,6 +1087,7 @@ function TAbstractFile.Read ( const AStr; AMax : word ) : Boolean;
           if (Action <> fcAbort) then
             Flags := Flags or flOpened;
           if (Action <> fcAbort) then Ptr := 0;
+          Flags := Flags or flModified;
         end;
     end;
 
@@ -1111,6 +1121,7 @@ function TAbstractFile.Read ( const AStr; AMax : word ) : Boolean;
           until (Action <> fcRetry);
           if (Action <> fcAbort) then
             Flags := Flags or flOpened;
+          Flags := Flags or flModified;
         end;
     end;
 
