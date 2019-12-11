@@ -110,6 +110,7 @@ procedure GetFAttr(var F; var Attr: Word);
 procedure SetFAttr(var F; Attr: Word);
 procedure GetFTime(var F; var Time : LongInt);
 procedure SetFTime(var F; Time : LongInt);
+procedure GetFSize(var F; var Size : LongInt);
 
 { Redirection }
 function IsRedirectedInput : boolean;
@@ -337,6 +338,26 @@ asm
   LES  DI, Time
   MOV  ES:[DI], CX
   MOV  ES:[DI + 2], DX
+end;
+
+procedure GetFSize(var F; var Size : LongInt);
+var
+    M : word;
+begin
+    M := FileMode;
+    FileMode := 0;
+    Reset(File(F), 1);
+    DosError := IOResult;
+    if DosError = 0 then begin
+        Size := FileSize(File(F));
+        DosError := IOResult;
+        Close(File(F));
+        if DosError = 0 then
+            DosError := IOResult;
+    end;
+    if DOSError <> 0 then
+        Size := -1;
+    FileMode := M;
 end;
 
 procedure SetFTime(var F; Time : LongInt); assembler;
