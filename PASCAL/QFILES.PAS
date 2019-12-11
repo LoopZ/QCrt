@@ -50,7 +50,6 @@ uses QClass, QDOS;
 	public { protected }
 	public
         Ptr    : LongInt;
-        Mode   : word;
         Flags  : word;
         Name   : String;
         Result : integer;
@@ -71,6 +70,7 @@ uses QClass, QDOS;
       procedure Seek(AFilePos: Longint); virtual;
       procedure Truncate; virtual;
       function  SetIOResult ( AIOResult : integer ) : byte; virtual;
+      procedure SetFileMode; virtual;
     { the following procedures/functions should not need to be overridden }
       procedure Append;
       procedure Copy(var AFile : PAbstractFile; ACount: LongInt);
@@ -80,7 +80,7 @@ uses QClass, QDOS;
       function  IOResult: Integer;
       function  SeekSof: Boolean;
       function  SeekEof: Boolean;
-      procedure SetFileMode ( AMode : word );
+      procedure SetMode ( AFlags : word );
       function Modified : boolean;
     { Should never, ever need overridden (they all call BlockRead) }
       procedure Insert(ACount : longint);
@@ -180,10 +180,9 @@ implementation
     begin
       inherited Create(AOwner);
       Ptr := 0;
-      Mode := 0;
       Name := '';
       StrictLines := False;
-      Flags := flInvalid;
+      Flags := flInvalid or flRandom;
       SetIOResult(erNone);
     end;
 
@@ -201,6 +200,7 @@ implementation
         begin
           SetIOResult ( erNone );
           Name := AFileName;
+          SetFileMode;
         end;
     end;
 
@@ -342,7 +342,7 @@ implementation
           if (Flags and flOpened = flOpened) then
             Close;
           if (Flags and flError <> flError) then
-            SetFileMode ( FileMode );
+            SetMode ( Flags or flRead );
         end;
     end;
 
@@ -356,7 +356,7 @@ implementation
           if (Flags and flOpened = flOpened) then
             Close;
           if (Flags and flError <> flError) then
-            SetFileMode ( (FileMode and (not 3)) or 2 );
+            SetMode ( Flags or flWrite );
         end;
     end;
 
@@ -392,7 +392,7 @@ implementation
           if (Flags and flOpened = flOpened) then
             Close;
           if (Flags and flError <> flError) then
-            SetFileMode ( (FileMode and (not 3)) or 1 );
+            SetMode ( Flags or flRandom );
         end;
     end;
 
@@ -435,16 +435,24 @@ implementation
       SeekEof := Flags and flError <> flError;
     end;
 
-  procedure TAbstractFile.SetFileMode ( AMode : word );
+  procedure TAbstractFile.SetMode ( AFlags : word );
     begin
-      Mode := AMode;
-      Flags := Flags and (Not flRandom);
-      case Mode and 2 of
-        0 : Flags := Flags or flRead;
-        1 : Flags := Flags or flWrite;
-        2 : Flags := Flags or flRandom;
-      end;
+      Flags := (Flags and (Not flRandom)) or AFlags;
+      SetFileMode;
     end;
+
+  procedure TAbstractFile.SetFileMode;
+  var
+    T : word;
+  begin
+    T := flInvalid;
+    if Flags or flRead    = flRead then T := T or 1;
+    if Flags or flWrite   = flWrite then T := T or 2;
+    if Flags or flRandom  = flRandom then T := T or 3;
+{    if Flags or flRandom  = flRandom then T := 0; }
+
+{    FileMode := (FileMode and (not 3)) or T; }
+  end;
 
   function TAbstractFile.Modified : boolean;
   begin

@@ -344,8 +344,8 @@ procedure GetFSize(var F; var Size : LongInt);
 var
     M : word;
 begin
-    M := FileMode;
-    FileMode := 0;
+    { M := FileMode;
+    FileMode := 0; }
     Reset(File(F), 1);
     DosError := IOResult;
     if DosError = 0 then begin
@@ -357,7 +357,7 @@ begin
     end;
     if DOSError <> 0 then
         Size := -1;
-    FileMode := M;
+    { FileMode := M; }
 end;
 
 procedure SetFTime(var F; Time : LongInt); assembler;
