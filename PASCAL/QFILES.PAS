@@ -451,7 +451,9 @@ implementation
     if Flags or flRandom  = flRandom then T := T or 3;
 {    if Flags or flRandom  = flRandom then T := 0; }
 
-{    FileMode := (FileMode and (not 3)) or T; }
+    {$IFDEF UseFileMode}
+    FileMode := (FileMode and (not 3)) or T;
+    {$ENDIF}
   end;
 
   function TAbstractFile.Modified : boolean;

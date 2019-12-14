@@ -169,6 +169,9 @@ procedure FullCursor;
 
 procedure SetCursor(Shape : Word);
 
+function  ReadCharAttr : word;
+procedure EOL;
+
 {$IFDEF EnableMouse}
 procedure MouseShow;
 procedure MouseHide;
@@ -348,6 +351,8 @@ procedure ScrollRight(Columns : byte); external;
 procedure SetCursor(Shape : Word); external;
 procedure InsColumn; external;
 procedure DelColumn; external;
+function  ReadCharAttr : word; external;
+procedure EOL; external;
 
 {$IFDEF EnableMouse}
 procedure MouseShow; external;

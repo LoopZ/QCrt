@@ -1593,6 +1593,48 @@ xprocedure ScrollRight, 2
 	mov		[CurrentX], dl
 xret
 
+; function  ReadCharAttr : word; external;
+xprocedure ReadCharAttr, word
+    PreWrite
+	mov		ah, 0x02
+	mov		bh, [VideoPage]
+	mov		cx, [WindMin]
+	mov		dl, [CurrentX]
+	mov		dh, [CurrentY]
+	add		dl, cl
+	add		dh, ch
+	int		0x10
+	mov     ah, 0x08
+	int     0x10
+	PostWrite
+xret
+
+; procedure EOL; external;
+xprocedure EOL
+    PreWrite
+	mov		bh, [VideoPage]
+	mov		cx, [WindMin]
+	mov		dx, [WindMax]
+	mov		dh, [CurrentY]
+	add		dh, ch
+.Check:
+    cmp     dl, cl
+    jbe     .Done
+	mov		ah, 0x02
+	int		0x10
+	mov     ah, 0x08
+	int     0x10
+	cmp     al, 0x20
+	jne     .Found
+	dec     dl
+	jmp     .Check
+.Found:
+.Done:
+    sub     dl, cl
+	mov		[CurrentX], dl
+	PostWrite
+xret
+
 ; ----- Mouse procedures and functions
 
 %ifdef EnableMouse
