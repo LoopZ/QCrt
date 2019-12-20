@@ -1086,26 +1086,35 @@ end;
 
 function Exists ( AFileName : String ) : boolean;
 var
-Search : TSearchRec;
+    Search : TSearchRec;
+    X : integer;
 begin
-FindFirst(FileExpand(AFileName), faAnyFile, Search);
-Exists := (DosError = 0);
+    X := DosError;
+    FindFirst(FileExpand(AFileName), faAnyFile, Search);
+    Exists := (DosError = 0);
+    DosError := X;
 end;
 
 function FileExists ( AFileName : String ) : boolean;
 var
     Search : TSearchRec;
+    X : integer;
 begin
+    X := DosError;
     FindFirst(FileExpand(AFileName), faAnyFile, Search);
     FileExists := (DosError = 0) and (Search.Attr and faDirectory <> faDirectory);
+    DosError := X;
 end;
 
 function DirExists ( AFileName : String ) : boolean;
 var
     Search : TSearchRec;
+    X : integer;
 begin
+    X := DosError;
     FindFirst(TailDelim(AFileName) + WildCard, faAnyFile, Search);
     DirExists := (DosError = 0);
+    DosError := X;
 end;
 
 function MakeDir(ADir : String) : integer;
