@@ -921,94 +921,94 @@ end;
 { Directory Stuff}
 procedure FindFirst(PathName : String; Attr : Word; var SearchRec : TSearchRec );
 begin
-PathName := PathName + #0;
-asm
-    MOV		AH, 1Ah
-    PUSH 	DS
-    LDS		DX, SearchRec
-    INT     21h
-    POP		DS
-    MOV     CX, attr
-    PUSH 	DS
-    LEA     DX, PathName
-    INC		DX
-    PUSH 	ES
-    POP		DS
-    MOV     AH, 4Eh
-    INT     21h
-    JC      @NotFound
-    POP		DS
+    PathName := PathName + #0;
+    asm
+        MOV		AH, 1Ah
+        PUSH 	DS
+        LDS		DX, SearchRec
+        INT     21h
+        POP		DS
+        MOV     CX, attr
+        PUSH 	DS
+        LEA     DX, PathName
+        INC		DX
+        PUSH 	ES
+        POP		DS
+        MOV     AH, 4Eh
+        INT     21h
+        JC      @NotFound
+        POP		DS
 
-    { Make into Pascal String }
-    MOV		CX, 12
-    MOV		AH, CL
-    LES		DI, SearchRec
-    ADD		DI, 30 + 12
-@Looped:
-    CMP		CL, 0
-    JE		@SetLen
-    MOV		AL, ES:[DI - 1]
-    MOV		ES:[DI], AL
-    DEC		CL
-    DEC		DI
-    CMP		AL, 0
-    JNE		@Looped
-    MOV		AH, CL
-    JMP		@Looped
-@SetLen:
-    LES		DI, SearchRec
-    MOV		ES:[DI + 30], AH
-    MOV 	DosError, 0
-    JMP 	@Done
-@NotFound:
-    XOR		AL, AL
-    LES		DI, SearchRec
-    MOV		ES:[DI + 30], AL
-    POP		DS
-    MOV		DosError, 12h
-@Done:
-end;
+        { Make into Pascal String }
+        MOV		CX, 12
+        MOV		AH, CL
+        LES		DI, SearchRec
+        ADD		DI, 30 + 12
+    @Looped:
+        CMP		CL, 0
+        JE		@SetLen
+        MOV		AL, ES:[DI - 1]
+        MOV		ES:[DI], AL
+        DEC		CL
+        DEC		DI
+        CMP		AL, 0
+        JNE		@Looped
+        MOV		AH, CL
+        JMP		@Looped
+    @SetLen:
+        LES		DI, SearchRec
+        MOV		ES:[DI + 30], AH
+        MOV 	DosError, 0
+        JMP 	@Done
+    @NotFound:
+        XOR		AL, AL
+        LES		DI, SearchRec
+        MOV		ES:[DI + 30], AL
+        POP		DS
+        MOV		DosError, 12h
+    @Done:
+    end;
 end;
 
 procedure FindNext(var SearchRec : TSearchRec);
 begin
-asm
-    MOV     AH, 4Fh
-    PUSH 	DS
-    LDS		DX, SearchRec
-    INT     21h
-    JC      @NotFound
-    POP		DS
+    asm
+        MOV     AH, 4Fh
+        PUSH 	DS
+        LDS		DX, SearchRec
+        INT     21h
+        JC      @NotFound
+        POP		DS
 
-    { Make into Pascal String }
-    MOV		CX, 12
-    MOV		AH, CL
-    LES		DI, SearchRec
-    ADD		DI, 30 + 12
-@Looped:
-    CMP		CL, 0
-    JE		@SetLen
-    MOV		AL, ES:[DI - 1]
-    MOV		ES:[DI], AL
-    DEC		CL
-    DEC		DI
-    CMP		AL, 0
-    JNE		@Looped
-    MOV		AH, CL
-    JMP		@Looped
-@SetLen:
-    LES		DI, SearchRec
-    MOV		ES:[DI + 30], AH
-    MOV 	DosError, 0
-    JMP 	@Done
-@NotFound:
-    XOR		AL, AL
-    LES		DI, SearchRec
-    MOV		ES:[DI + 30], AL
-    POP		DS
-    MOV		DosError, 12h
-@Done:
-end;
+        { Make into Pascal String }
+        MOV		CX, 12
+        MOV		AH, CL
+        LES		DI, SearchRec
+        ADD		DI, 30 + 12
+    @Looped:
+        CMP		CL, 0
+        JE		@SetLen
+        MOV		AL, ES:[DI - 1]
+        MOV		ES:[DI], AL
+        DEC		CL
+        DEC		DI
+        CMP		AL, 0
+        JNE		@Looped
+        MOV		AH, CL
+        JMP		@Looped
+    @SetLen:
+        LES		DI, SearchRec
+        MOV		ES:[DI + 30], AH
+        MOV 	DosError, 0
+        JMP 	@Done
+    @NotFound:
+        XOR		AL, AL
+        LES		DI, SearchRec
+        MOV		ES:[DI + 30], AL
+        POP		DS
+        MOV		DosError, 12h
+    @Done:
+    end;
 end;
 
 { Other Functions }

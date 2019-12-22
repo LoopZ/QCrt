@@ -106,6 +106,9 @@ procedure AddChar ( var S : String; C : Char );
 procedure AddStr ( var S1 : String; S2 : String );
 { Adds Character to end of String }
 
+function FirstWord(Str : String) : String;
+{ Returns the first "word" in a string, separated by first non-alphanumeric }
+
 function PullStr(SubStr : String; var S : String) : String;
 { Returns String up to SubString and removes it from S. If SubStr is
 not present the entire string is "Pulled". SubStr is not returned in
@@ -121,38 +124,6 @@ procedure FreeStr(var P : PString);
 implementation
 
 {$L QSTRINGS.OBJ}
-
-  function NextPos ( SubStr : String; S : String; StartPos : byte ) : byte;
-    var
-      StrPtr : ^String;
-      TPos   : Byte;
-    begin
-      if (StartPos = 0) or (StartPos > Length(S)) then
-        NextPos := 0
-      else
-        begin
-          Dec(StartPos);
-          S[StartPos] := Char(Length(S) - StartPos);
-          StrPtr := @S[StartPos];
-          TPos := Pos(SubStr, StrPtr^);
-          if TPos > 0 then Inc(TPos, StartPos);
-          NextPos := TPos;
-        end;
-    end;
-
-  function LastPos ( SubStr : String; S : String ) : byte;
-  var
-  	Temp, P : byte;
-  begin
-  	Temp := 0;
-    P := 0;
-  	repeat
-  		Inc(P);
-  		P := NextPos(SubStr, S, P);
-  		if P > 0 then Temp := P;
-  	until P = 0;
-  	LastPos := Temp;
-  end;
 
 {----------------------------------------------------------------------------}
   function UCase ( Str : String ) : String;
@@ -311,7 +282,7 @@ implementation
     @@2:
       POP  DS
     end;
- { Non Asm Versions }
+
   function RTrim ( Str : String ) : String;
   begin
       asm
@@ -426,6 +397,123 @@ implementation
       end;
    end;
 
+  function HEXbyte ( B : byte ) : Str2; assembler;
+    asm
+      LES DI, @RESULT
+      MOV AL, $02
+      MOV ES:[DI], AL
+      MOV AL, B
+      MOV AH, B
+      AND AH, $0F
+      AND AL, $F0
+      MOV CL, $04
+      SHR AL, CL
+      CMP AL, $9
+      JNA @@1
+      ADD AL, $07
+    @@1:
+      ADD AL, $30
+      CMP AH, $9
+      JNA @@2
+      ADD AH, $07
+    @@2:
+      ADD AH, $30
+      MOV ES:[DI + 1], AX
+    end;
+
+  function BINByte ( B : Byte ) : Str8; assembler;
+    asm
+      LES DI, @Result
+      MOV AL, 8
+      MOV ES:[DI], AL
+      MOV CX, 8
+      MOV AL, B
+    @@1:
+      INC DI
+      MOV AH, '1'
+      CMP AL, $80
+      JAE @@2
+      MOV AH, '0'
+    @@2:
+      MOV ES:[DI], AH
+      SHL AL, 1
+      DEC CX
+      JNZ @@1
+    end;
+
+function FirstWord(Str : String) : String; assembler;
+{ Returns the first "word" in a string, separated by first non-alphanumeric }
+asm
+    PUSH    DS
+    CLD
+    LES     DI, @Result
+    LEA     SI, Str
+    LDS     SI, SS:[SI]
+    PUSH    DI
+    LODSB
+    SEGES   STOSB
+    XOR     AH, AH
+    XCHG    AX, CX
+    JCXZ    @4
+@1:
+    LODSB
+    CMP     AL, '0'
+    JB      @3
+    CMP     AL, '9'
+    JBE     @2
+    CMP     AL, 'A'
+    JB      @3
+    CMP     AL, 'Z'
+    JBE     @2
+    CMP     AL, 'a'
+    JB      @3
+    CMP     AL, 'z'
+    JA     @3
+@2:
+    INC     AH
+    SEGES   STOSB
+    LOOP    @1
+@3:
+@4:
+    POP     DI
+    MOV     AL, AH
+    SEGES   STOSB
+    POP     DS
+end;
+
+ { Non assembly functions and procedures }
+
+  function NextPos ( SubStr : String; S : String; StartPos : byte ) : byte;
+    var
+      StrPtr : ^String;
+      TPos   : Byte;
+    begin
+      if (StartPos = 0) or (StartPos > Length(S)) then
+        NextPos := 0
+      else
+        begin
+          Dec(StartPos);
+          S[StartPos] := Char(Length(S) - StartPos);
+          StrPtr := @S[StartPos];
+          TPos := Pos(SubStr, StrPtr^);
+          if TPos > 0 then Inc(TPos, StartPos);
+          NextPos := TPos;
+        end;
+    end;
+
+  function LastPos ( SubStr : String; S : String ) : byte;
+  var
+  	Temp, P : byte;
+  begin
+  	Temp := 0;
+    P := 0;
+  	repeat
+  		Inc(P);
+  		P := NextPos(SubStr, S, P);
+  		if P > 0 then Temp := P;
+  	until P = 0;
+  	LastPos := Temp;
+  end;
 
   function Space ( N : byte ) : String;
     Var
@@ -498,30 +586,6 @@ implementation
  end;
 
 {----------------------------------------------------------------------------}
-  function HEXbyte ( B : byte ) : Str2; assembler;
-    asm
-      LES DI, @RESULT
-      MOV AL, $02
-      MOV ES:[DI], AL
-      MOV AL, B
-      MOV AH, B
-      AND AH, $0F
-      AND AL, $F0
-      MOV CL, $04
-      SHR AL, CL
-      CMP AL, $9
-      JNA @@1
-      ADD AL, $07
-    @@1:
-      ADD AL, $30
-      CMP AH, $9
-      JNA @@2
-      ADD AH, $07
-    @@2:
-      ADD AH, $30
-      MOV ES:[DI + 1], AX
-    end;
-
   function HEXWord ( W : Word ) : Str4;
     begin
       HEXWord := HEXByte(Hi(W)) + HEXByte(Lo(W));
@@ -532,26 +596,6 @@ implementation
       WordCast = array[0..1] of word;
     begin
       HEXLong := HEXWord(WordCast(L)[1]) + HEXWord(WordCast(L)[0]);
-    end;
-
-  function BINByte ( B : Byte ) : Str8; assembler;
-    asm
-      LES DI, @Result
-      MOV AL, 8
-      MOV ES:[DI], AL
-      MOV CX, 8
-      MOV AL, B
-    @@1:
-      INC DI
-      MOV AH, '1'
-      CMP AL, $80
-      JAE @@2
-      MOV AH, '0'
-    @@2:
-      MOV ES:[DI], AH
-      SHL AL, 1
-      DEC CX
-      JNZ @@1
     end;
 
   function BINWord ( W : Word ) : Str16;
