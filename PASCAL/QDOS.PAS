@@ -1118,35 +1118,16 @@ begin
 end;
 
 function MakeDir(ADir : String) : integer;
-var
-    Work, S : String;
-    I : Integer;
 begin
-    MakeDir := 0 { No Error };
-    ADir := Dir(ADir);
-    Work := '';
-    while ADir <> '' do begin
-        I := Pos(PathDelim, ADir);
-        if I > 0 then begin
-            S := Copy(ADir, 1, I - 1);
-            ADir := Copy(ADir, I + 1, Length(ADir));
-        end else begin
-            S := ADir;
-            ADir := '';
-        end;
-        If Length(Work) > 0 then
-            Work := TailDelim(Work) + S
-        else
-            Work := S;
-        if Not DirExists(Work) then begin
-            MkDir(Work);
-            I := IOResult;
-            if I <> 0 then begin
-                MakeDir := I;
-                Exit;
-            end;
-        end;
+    MakeDir := 0;
+    ADir := NoTailDelim(ADir);
+    if DirExists(ADir) then Exit;
+    DosError := MakeDir(PathOf(ADir));
+    if DosError = 0 then begin
+        MkDir(ADir);
+        DosError := IOResult;
     end;
+    MakeDir := DosError;
 end;
 
 function Dir(ADirName : String) : String;
