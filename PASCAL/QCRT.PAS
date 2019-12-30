@@ -185,8 +185,9 @@ function MouseMove: boolean;
 function MouseClick : boolean;
 function MouseDoubleClick : boolean;
 function ReadMouse : integer;
-
 {$ENDIF}
+
+procedure Idle;
 
 implementation
 
@@ -303,6 +304,11 @@ begin
     end;
 end;
 
+procedure Idle; assembler;
+asm
+    hlt
+end;
+
 { External Assembly Routines }
 
 {$L QCRT.OBJ}
@@ -364,7 +370,6 @@ function MouseMove: boolean; external;
 function MouseClick : boolean; external;
 function MouseDoubleClick : boolean; external;
 function ReadMouse : integer; external;
-
 {$ENDIF}
 
 { initialization & finalization routines }

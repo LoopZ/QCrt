@@ -198,12 +198,19 @@ function GetEnv(const Key : String) : String;
 function GetEnvCount: integer;
 function GetEnvParam(AIndex : integer): String;
 
+procedure DosIdle;
+
 implementation
 
 uses
     QASCIIZ, QStrings;
 
 {$L QDOS.OBJ}
+
+procedure DosIdle; assembler;
+asm
+    HLT
+end;
 
 function DosVersion : word; assembler;
 asm
