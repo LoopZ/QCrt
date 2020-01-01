@@ -198,7 +198,7 @@ function GetEnv(const Key : String) : String;
 function GetEnvCount: integer;
 function GetEnvParam(AIndex : integer): String;
 
-procedure DosIdle;
+function DiskReady(ADrive : byte):boolean;
 
 implementation
 
@@ -207,9 +207,35 @@ uses
 
 {$L QDOS.OBJ}
 
-procedure DosIdle; assembler;
+function DiskReady(ADrive : byte):boolean; assembler;
+{ Technically, disk change is a BIOS function present starting 1/10/1986,
+really should only be used with floppy disks }
 asm
-    HLT
+  MOV   AL, ADrive
+  CMP   AL, 26
+  JA    @0
+  CMP   AL, 0
+  JNE   @1
+@0:
+  MOV   AH, 19h
+  INT   21h
+  INC   AL
+@1:
+  DEC   AL
+  CMP   AL, 2
+  JB    @2
+  ADD   AL, 7Eh
+@2:
+  MOV   DL, AL
+  MOV   AH, 16h
+  INT   13h
+  JC    @4
+@3:
+  MOV   AL, TRUE
+  JMP   @5
+@4:
+  MOV   AL, FALSE
+@5:
 end;
 
 function DosVersion : word; assembler;

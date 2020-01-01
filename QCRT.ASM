@@ -109,6 +109,9 @@ section Section_SHARED
         extern MouseHomeY       ; : integer;    { Y Home position of mouse }
     %endif
 
+    extern IdleCPU        ; : boolean;      { Idle CPU during Idle Process }
+    extern IdleProc       ; : pointer;      { Idle procedure chain }
+
 %else
 	CheckBreak: 	DB FALSE
 	CheckEOF: 		DB FALSE
@@ -694,6 +697,9 @@ MouseActivate:
 
 ; function InitQCrt : boolean; external;
 xfunction InitQCrt, boolean
+	mov 	[IdleCPU], byte FALSE
+	mov 	[IdleProc], word 0x0000
+	mov 	[IdleProc + 2], word 0x0000
 	mov 	[CheckBreak], byte FALSE
 	mov 	[CheckScroll], byte TRUE
 	mov 	[DoubleWide], byte FALSE
@@ -1789,6 +1795,24 @@ xfunction ReadMouse, word
 xret
 
 %endif
+
+xprocedure Idle
+.IdleProcs:
+    mov     ax, [IdleProc]
+    cmp     ax, 0
+    jne     .DoCall
+    mov     ax, [IdleProc + 2]
+    cmp     ax, 0
+    je      .DoneProcs
+.DoCall:
+    call    far [IdleProc]
+.DoneProcs:
+    mov     AL, [IdleCPU]
+    cmp     AL, FALSE
+    je      .NoCPUHalt
+    hlt
+.NoCPUHalt:
+xret
 
 SkipOverQCrt:
 %ifidni __OUTPUT_FORMAT__, bin

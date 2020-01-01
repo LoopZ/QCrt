@@ -73,6 +73,9 @@ const
   { BlinkingNormal          = $87; }
   { BlinkingBold            = $8F; }
 
+type
+    TIdleProc = procedure;
+
 var
     CheckBreak  : boolean;  { Enable Ctrl-Break }
     CheckEOF    : boolean;  { Enable Ctrl-Z }
@@ -102,6 +105,8 @@ var
     MouseHomeY       : integer;    { Y Home position of mouse }
     {$ENDIF}
 
+    IdleCPU        : boolean;      { Idle CPU during Idle Process }
+    IdleProc       : TIdleProc;      { Idle procedure chain }
 
 { Standard procedures and functions }
 procedure AssignCrt(var F : text);
@@ -304,11 +309,6 @@ begin
     end;
 end;
 
-procedure Idle; assembler;
-asm
-    hlt
-end;
-
 { External Assembly Routines }
 
 {$L QCRT.OBJ}
@@ -371,6 +371,8 @@ function MouseClick : boolean; external;
 function MouseDoubleClick : boolean; external;
 function ReadMouse : integer; external;
 {$ENDIF}
+
+procedure Idle; external;
 
 { initialization & finalization routines }
 
