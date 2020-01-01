@@ -32,9 +32,6 @@ if exist %DOSDIR%\LINKS\%ASM%.BAT set ASM=call %ASM%
 :ASMset
 
 call %SELF% make QCRT
-call %SELF% make QBOXES
-call %SELF% make QEVENTS
-call %SELF% make QEDITLN
 call %SELF% make QASCIIZ
 call %SELF% make QSTRINGS
 call %SELF% make QDOS
@@ -43,6 +40,9 @@ call %SELF% make QXMS
 call %SELF% make QCLASS
 call %SELF% make QLISTS
 call %SELF% make QFILES
+call %SELF% make QBOXES
+call %SELF% make QEVENTS
+call %SELF% make QEDITLN
 
 goto DONE
 :MAKE
