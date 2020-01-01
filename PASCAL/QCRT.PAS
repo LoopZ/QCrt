@@ -192,6 +192,9 @@ function MouseDoubleClick : boolean;
 function ReadMouse : integer;
 {$ENDIF}
 
+function GetMaxX : integer;
+function GetMaxY : integer;
+
 procedure Idle;
 
 implementation
@@ -307,6 +310,16 @@ begin
         CloseFunc   := CloseCrt;
         Move(CrtNameID, Name, Sizeof(Name));
     end;
+end;
+
+function GetMaxX : integer;
+begin
+    GetMaxX := Lo(WindMax) + 1;
+end;
+
+function GetMaxY : integer;
+begin
+    GetMaxY := Hi(WindMax) + 1;
 end;
 
 { External Assembly Routines }

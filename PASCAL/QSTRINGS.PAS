@@ -15,6 +15,7 @@ type
 	Str4    = String[4];
 	Str5    = String[5];
 	Str8    = String[8];
+	Str12    = String[8];
 	Str16   = String[16];
 	Str20   = String[20];
 	Str32   = String[32];
