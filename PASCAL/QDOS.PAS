@@ -907,7 +907,6 @@ asm
 	LES BX, DWORD PTR Params
 	LDS DX, DWORD PTR Command
 	INC DX
-
 	MOV AH, $4B
 	INT 21h
 	JC @@Returned
@@ -1474,6 +1473,7 @@ procedure UnitInit;
 var
     S : String;
 begin
+    SaveIntVecs;
     if not InitQDOS(PrefixSeg) then Halt(10); { Internal Error }
 
     PathDelim := '\';
