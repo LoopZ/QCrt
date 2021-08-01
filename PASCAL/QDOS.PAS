@@ -1,6 +1,10 @@
 {
-    Copyright 2019 Jerome Shidel
-    Released Under GPL v2.0 License.
+Copyright 1990-2021, Jerome Shidel
+Released Under Mozilla Public License 2.0
+
+This project and related files are subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this file, You
+can obtain one at http://mozilla.org/MPL/2.0/.
 }
 
 unit QDOS; { QuickCrt 9.x, DOS Unit, Requires MS-DOS 5.00 or better }
@@ -8,6 +12,8 @@ unit QDOS; { QuickCrt 9.x, DOS Unit, Requires MS-DOS 5.00 or better }
 {$I QCRT.DEF}
 
 interface
+
+uses QClass;
 
 const
   { Offset for DOS Date Time Functions }
@@ -23,6 +29,7 @@ const
     faAnyFile    = $3F;
 
 type
+    TFileNameString = String[12];
     {Typed and untyped files}
     TFileRec = record
       Handle: Word;
@@ -39,7 +46,7 @@ type
         Attr : byte;
         Time : LongInt;
         Size : LongInt;
-        Name : String[12];
+        Name : TFileNameString;
     end;
 
     PDateTime = ^TDateTime;
@@ -80,8 +87,12 @@ type
     	Params : String;
     end;
 
+    TCopyProgressFunc = function (APercent : integer) : boolean;
+
+
 var
     PathDelim   : Char;
+    DriveDelim  : Char;
     SwitchChar  : Char;
     DosError    : integer;
     WildCard    : String[3];
@@ -89,6 +100,12 @@ var
 function DosVersion : word;
 
 function StdInReady : boolean;
+
+function CtrlCPressed : boolean; { Tested through BIOS not DOS, also dumps
+ next key-press from keyboard buffer }
+function WaitCtrlCPressed : boolean; { Like CtrlCPressed but does not return
+ until a key is pressed }
+
 
 { Character I/O }
 {
@@ -161,6 +178,7 @@ procedure Exec(Command, Params : String);
 { Directory Stuff}
 procedure FindFirst(PathName : String; Attr : Word; var SearchRec : TSearchRec );
 procedure FindNext(var SearchRec : TSearchRec);
+procedure FindClose(var SearchRec : TSearchRec);
 
 { Other Functions }
 function PathOf(AFileName : String) : String;
@@ -172,15 +190,24 @@ function DriveLetters : string;
 { Expands a file or dir name to full path }
 function FileExpand(AFileName : String) : String;
 
+{ Expands %ENV% variables in a string }
+function ENVExpand(Str : String) : String;
+
 function FileExtension(AFileName : String) : String;
 
 { Returns 0, if the dir exists or was able to be created. Or non-zero error }
 function MakeDir ( ADir : String ) : integer;
 
+function DeleteFile(AFileName : String; Forced : boolean) : boolean;
+{ recursive delete all files and subdirectories }
+function DeleteDir(ADirName : String; Forced : boolean) : boolean;
+
 { Uses FindFirst to test if File/Dir Exists }
 function FileExists ( AFileName : String ) : boolean;
 function DirExists ( AFileName : String ) : boolean;
 function Exists ( AFileName : String ) : boolean;
+
+function SearchPathSpec(AFileName : String) : String;
 
 function Dir(ADirName : String) : String;
 
@@ -200,12 +227,97 @@ function GetEnvParam(AIndex : integer): String;
 
 function DiskReady(ADrive : byte):boolean;
 
+function SizeOfFile(AFileName : String) : longint;
+
+
+function CopyFile(ASrc, ADest : String; ABuf : pointer; ABufSize : word; AProgress : TCopyProgressFunc) : integer;
+{ Simple File Copy, If ABuf is nil, one of ABufSize will be created and destroyed
+  automatically for copy. AProgress is only called when the percentage changes.
+  If the Progress function returns false, the copy process is aborted.
+  }
+
+type
+    PDirItem = ^TDirItem;
+    TDirItem = object(TObject)
+    public
+        Attr : byte;
+        Time : LongInt;
+        Size : LongInt;
+        Name : TFileNameString;
+        Data : PObject;
+        constructor Create(AOwner : PObject);
+        destructor Destroy; virtual;
+        function GetClassName : String; virtual;
+        function SizeOfObject : LongInt; virtual;
+    end;
+    PDirList = ^TDirList;
+    TDirList = object(TList)
+    private
+        CPtr : PListItem;
+    public
+        Sorted : boolean;
+        IncludeParent,
+        IncludeDirs,
+        IncludeFiles,
+        IncludeVolumeID : Boolean;
+        constructor Create(AOwner : PObject);
+        function GetClassName : String; virtual;
+        function SizeOfObject : LongInt; virtual;
+        function GetDirList(PathName : String; Attr : Word) : integer; virtual;
+        function AddItem(AObject : PObject) : PObject; virtual;
+    end;
+
+function NewDirItem(AOwner:PObject) : PObject;
+function NewDirList(AOwner:PObject) : PObject;
+
 implementation
 
 uses
     QASCIIZ, QStrings;
 
 {$L QDOS.OBJ}
+
+function CtrlCPressed : boolean; assembler;
+asm
+        MOV     AH, $01
+        INT     $16
+        JZ      @@1
+        { get keystroke to remove from buffer, can live without. But, in
+        long loops, if any other key is pressed, ctrl-c will not yet be seen }
+        XOR     AH, AH
+        INT     $16
+        { test keystroke }
+        CMP     AL, $03
+        JNE     @@1
+        { ctrl-c pressed }
+        MOV     AL, TRUE
+        JMP     @@2
+    @@1:
+        MOV     AL, FALSE
+    @@2:
+end;
+
+function WaitCtrlCPressed : boolean; assembler;
+asm
+    @@0:
+        MOV     AH, $01
+        INT     $16
+        JZ      @@0
+        { get keystroke to remove from buffer, can live without. But, in
+        long loops, if any other key is pressed, ctrl-c will not yet be seen }
+        XOR     AH, AH
+        INT     $16
+        { test keystroke }
+        CMP     AL, $03
+        JNE     @@1
+        { ctrl-c pressed }
+        MOV     AL, TRUE
+        JMP     @@2
+    @@1:
+        MOV     AL, FALSE
+    @@2:
+end;
+
 
 function DiskReady(ADrive : byte):boolean; assembler;
 { Technically, disk change is a BIOS function present starting 1/10/1986,
@@ -373,6 +485,23 @@ asm
   MOV  ES:[DI + 2], DX
 end;
 
+procedure SetFTime(var F; Time : LongInt); assembler;
+asm
+  PUSH DS
+  MOV  AX, 5701h
+  LES  CX, Time
+  PUSH ES
+  POP  DX
+  LDS  BX, F
+  MOV  BX, DS:[BX]
+  INT  21h
+  POP  DS
+  JC   @1
+  XOR  AX, AX
+@1:
+  MOV  DosError, AX
+end;
+
 procedure GetFSize(var F; var Size : LongInt);
 var
     M : word;
@@ -391,23 +520,6 @@ begin
     if DOSError <> 0 then
         Size := -1;
     { FileMode := M; }
-end;
-
-procedure SetFTime(var F; Time : LongInt); assembler;
-asm
-  PUSH DS
-  MOV  AX, 5701h
-  LES  DI, Time
-  MOV  CX, ES:[DI]
-  MOV  DX, ES:[DI + 2]
-  LDS  BX, F
-  MOV  BX, DS:[BX]
-  INT  21h
-  POP  DS
-  JC   @1
-  XOR  AX, AX
-@1:
-  MOV  DosError, AX
 end;
 
 function IsRedirectedInput : boolean;
@@ -1043,6 +1155,11 @@ begin
     end;
 end;
 
+procedure FindClose(var SearchRec : TSearchRec);
+begin
+    DosError := 0;
+end;
+
 { Other Functions }
 function PathOf(AFileName : String) : String;
 begin
@@ -1113,7 +1230,7 @@ end else begin
             AFileName := S;
     end;
   end;
-FileExpand := AFileName;
+    FileExpand := AFileName;
 end;
 
 function Exists ( AFileName : String ) : boolean;
@@ -1465,6 +1582,370 @@ begin
     GetEnv := KeyValueOnly(LookupASCIIZ(Ptr(MemW[PrefixSeg:$002c],0), Key));
 end;
 
+function SizeOfFile(AFileName : String) : longint;
+var
+    F : File;
+    Size : longint;
+    M : word;
+begin
+    M := FileMode;
+    FileMode := 0;
+    Assign(F, AFileName);
+    GetFSize(F, Size);
+    SizeOfFile := Size;
+    FileMode := M;
+end;
+
+
+{ TDirItem }
+constructor TDirItem.Create(AOwner : PObject);
+begin
+    inherited Create(AOwner);
+    Attr := 0;
+    Time := 0;
+    Size := 0;
+    Name := '';
+    Data := nil;
+end;
+
+destructor TDirItem.Destroy;
+begin
+    if Assigned(Data) then
+        Dispose(Data, Destroy);
+    inherited Destroy;
+end;
+
+function TDirItem.GetClassName : String;
+begin
+    GetClassName := 'TDirItem';
+end;
+
+function TDirItem.SizeOfObject : LongInt;
+begin
+    SizeOfObject := SizeOf(TDirItem);
+end;
+
+{ TDirList }
+
+constructor TDirList.Create(AOwner : PObject);
+begin
+    inherited Create(AOwner);
+    IncludeParent := True;
+    IncludeDirs := True;
+    IncludeFiles := True;
+    IncludeVolumeID := False;
+    Sorted := True;
+    CPtr := nil;
+end;
+
+function TDirList.GetClassName : String;
+begin
+    GetClassName := 'TDirList';
+end;
+
+function TDirList.SizeOfObject : LongInt;
+begin
+    SizeOfObject := SizeOf(TDirList);
+end;
+
+function TDirList.GetDirList(PathName : String; Attr : Word) : integer;
+var
+    Search : TSearchRec;
+    Ret : integer;
+    Item : PDirItem;
+begin
+    FindFirst(PathName, Attr, Search);
+    Ret := DOSError;
+    if Ret = 0 then begin
+        repeat
+            if
+            ((IncludeVolumeID) and (Search.Attr and faVolumeID = faVolumeID)) or
+            ((IncludeFiles) and (Search.Attr and (faDirectory or faVolumeID) = 0)) or
+            (((IncludeDirs) and (Search.Attr and faDirectory = faDirectory)) and
+            ((IncludeParent) or ((Search.Name <> '.') and (Search.Name <> '..'))))
+            then begin
+                { WriteLn('+', Search.Name); }
+                Item := PDirItem(NewDirItem(PObject(@Self)));
+                Item^.Attr := Search.Attr;
+                Item^.Time := Search.Time;
+                Item^.Size := Search.Size;
+                Item^.Name := Search.Name;
+                AddItem(Item);
+            end;
+            FindNext(Search);
+            Ret := DOSError;
+        until Ret <> 0;
+    end;
+    if Ret = 18 then Ret := 0;
+    GetDirList := Ret;
+    FindClose(Search);
+end;
+
+function TDirList.AddItem(AObject : PObject) : PObject;
+begin
+    CPtr := GetLast;
+    if (not Sorted) or (not Assigned(CPtr)) or (not Assigned(AObject)) then begin
+        AddItem := inherited AddItem(AObject);
+    end else begin
+        if ( PDirItem(AObject)^.Name >= PDirItem(CPtr^.PItem)^.Name ) then begin
+            AddItem := inherited AddItem(AObject);
+            Exit;
+        end;
+        CPtr := GetFirst;
+        while Assigned(CPtr) and
+        ( PDirItem(AObject)^.Name > PDirItem(CPtr^.PItem)^.Name ) do begin
+            CPtr := CPtr^.PNext;
+        end;
+        AddItem := InsertItem(AObject, CPtr);
+    end;
+end;
+
+
+function NewDirItem(AOwner:PObject) : PObject;
+begin
+    NewDirItem := New(PDirItem, Create(AOwner));
+end;
+
+function NewDirList(AOwner:PObject) : PObject;
+begin
+    NewDirList := New(PDirList, Create(AOwner));
+end;
+
+function SearchPathSpec(AFileName : String) : String;
+var
+    D, PS : String;
+    I : integer;
+begin
+    SearchPathSpec := '';
+    PS := GetENV('PATH');
+    while PS <> '' do begin
+        I := Pos(';', PS);
+        if I < 1 then I := Length(PS) + 1;
+        D := Trim(Copy(PS, 1, I - 1));
+        Delete(PS, 1, I);
+        if FileExists(TailDelim(D) + AFileName) then begin
+            SearchPathSpec := TailDelim(D) + AFileName;
+            Break;
+        end;
+    end;
+end;
+
+{$I-}
+function CopyFile(ASrc, ADest : String; ABuf : pointer; ABufSize : word; AProgress : TCopyProgressFunc) : integer;
+var
+    FI, FO : File;
+    FM : Word;
+    ErrorCode, FCount, FAttr : word;
+    DumpBuf : boolean;
+    FSize, FPos, FProg, LProg, XProg, FTime : LongInt;
+    function Error : boolean;
+    var
+        E : integer;
+    begin
+        E := IOResult;
+        if E <> 0 then ErrorCode := E;
+        Error := ErrorCode <> 0;
+    end;
+    procedure DoneCopy(ACode : integer);
+    begin
+        if DumpBuf then FreeMem(ABuf, ABufSize);
+        Close(FI);
+        Error;
+        Close(FO);
+        Error;
+        CopyFile := ACode;
+        FileMode := FM;
+    end;
+begin
+    FM := FileMode;
+    ErrorCode := 0;
+    DumpBuf := not Assigned(ABuf);
+    if  DumpBuf then begin
+        if MaxAvail < ABufSize then begin
+            CopyFile := 8; { out of memory }
+            Exit;
+        end;
+        GetMem(ABuf, ABufSize);
+    end;
+    Assign(FI, ASrc);
+    Assign(FO, ADest);
+    Rewrite(FO, 1);
+    if Error then begin
+        DoneCopy(ErrorCode);
+        Exit;
+    end;
+    FileMode := 0;
+    Reset(FI, 1);
+    if Error then begin
+        DoneCopy(ErrorCode);
+        Exit;
+    end;
+    FSize := FileSize(FI);
+    if Error then begin
+        DoneCopy(ErrorCode);
+        Exit;
+    end;
+    FPos := 0;
+    LProg := 0;
+    XProg := FSize div 100;
+    if XProg = 0 then XProg := 1;
+    if Assigned(AProgress) then
+        if not AProgress(0) then begin
+            DoneCopy(-1);
+            exit;
+        end;
+    while FPos < FSize do begin
+        BlockRead(FI, ABuf^, ABufSize, FCount);
+        if not Error then begin
+            BlockWrite(FO, ABuf^, FCount);
+        end;
+        if Error then begin
+            DoneCopy(ErrorCode);
+            exit;
+        end;
+        Inc(FPos, FCount);
+        if Assigned(AProgress) then begin
+            FProg := (FPos div XProg);
+            if (FProg <> LProg) then begin
+                if not AProgress(FProg) then begin
+                    DoneCopy(-1);
+                    exit;
+                end;
+                LProg := FProg;
+            end;
+        end;
+    end;
+    if Assigned(AProgress) and (LProg <> 100) then AProgress(100);
+    GetFAttr(FI, FAttr);
+    GetFTime(FI, FTime);
+    SetFTime(FO, FTime);
+    DoneCopy(0);
+    SetFAttr(FO, FAttr);
+end;
+{$I+}
+
+function ENVExpand(Str : String) : String;
+var
+    S, T : String;
+    X : boolean;
+    P : integer;
+begin
+    S := '';
+    X := False;
+    T := '';
+    while true do begin
+        P := Pos('%', Str);
+        if P = 0 then begin
+            if X then
+                S := S + T + '%' + Str
+            else
+                S := S + Str;
+            Break;
+        end;
+        if X and (T<>'') then
+            S := S + T;
+        T := Copy(Str, 1, P - 1);
+        Delete(Str, 1, P);
+        if X then begin
+            if T = '' then
+                S := S + '%'
+            else
+                S := S + GetEnv(UCase(T));
+        end;
+        X := not X;
+    end;
+    ENVExpand := S;
+end;
+
+
+{$I-}
+function DeleteFile(AFileName : String; Forced : boolean) : boolean;
+var
+    F : File;
+    E, X : integer;
+begin
+    DeleteFile := False;
+    Assign(F, AFileName);
+    if Forced then begin
+        SetFAttr(F, 0);
+        { if DOSError <> 0 then Exit; }
+    end;
+    Erase(F);
+    DOSError := IOResult;
+{    if DosError <> 0 then WriteLn(AFileName, ':', DosError); }
+    DeleteFile := DOSError = 0;
+end;
+{$I+}
+{$I-}
+
+function DeleteDir(ADirName : String; Forced : boolean) : boolean;
+type
+    PDirStack = ^TDirStack;
+    TDirStack = record
+        SubDir : TFileNameString;
+        Next : PDirStack;
+    end;
+
+var
+    Search : TSearchRec;
+    F : File;
+    E : Integer;
+    P, T : PDirStack;
+
+
+begin
+    DeleteDir := False;
+    P := nil;
+    FindFirst(TailDelim(ADirName) + '*.*', faAnyfile, Search);
+    while DOSError = 0 do begin
+        if Search.Attr and faVolumeID = faVolumeID then begin
+            FindNext(Search);
+            continue;
+        end;
+        if Search.Attr and faDirectory = faDirectory then begin
+            if (Search.Name = '.') or (Search.Name = '..') then begin
+                FindNext(Search);
+                continue;
+            end;
+            if MaxAvail < Sizeof(TDirStack) * 10 then begin
+                DOSERROR := 8;
+                Break;
+            end;
+            T := New(PDirStack);
+            T^.Next := P;
+            T^.SubDir := Search.Name;
+            P := T;
+        end else begin
+            if not DeleteFile(TailDelim(ADirName) + Search.Name, Forced) then
+                break;
+        end;
+
+        FindNext(Search);
+    end;
+    E := DOSError;
+    FindClose(Search);
+    while Assigned(P) do begin
+        if not DeleteDir(TailDelim(ADirName) + P^.SubDir, Forced) then begin
+            if DOSError <> 0 then E := DosError;
+        end;
+        T := P^.Next;
+        Dispose(P);
+        P := T;
+    end;
+    if (E = 0) or (E = 18) then begin
+        if Forced then begin
+            Assign(F, NoTailDelim(ADirName));
+            SetFAttr(F, 0);
+        end;
+        RmDir(NoTailDelim(ADirName));
+        E := IOResult;
+    end;
+{    if E <> 0 then WriteLn(E, ',', ADirName); }
+    DOSError := E;
+    DeleteDir := (DOSError = 0);
+end;
+{$I+}
+
 { initialization & finalization routines }
 
 function InitQDOS(PrefixSeg : word) : boolean; external;
@@ -1478,6 +1959,7 @@ begin
 
     PathDelim := '\';
     WildCard := '*.*';
+    DriveDelim := ':';
 
     S := GetEnv('SWITCHCHAR');
     if S = '' then
@@ -1488,4 +1970,6 @@ end;
 
 begin
     UnitInit;
+    RegisterObject('TDirItem', NewDirItem);
+    RegisterObject('TDirList', NewDirList);
 end.

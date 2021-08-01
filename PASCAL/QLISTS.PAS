@@ -1,6 +1,10 @@
 {
-    Copyright 2019 Jerome Shidel
-    Released Under GPL v2.0 License.
+Copyright 1990-2021, Jerome Shidel
+Released Under Mozilla Public License 2.0
+
+This project and related files are subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this file, You
+can obtain one at http://mozilla.org/MPL/2.0/.
 }
 
 unit QLists; { QuickCrt 9.x, List Unit }

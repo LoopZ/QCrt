@@ -31,8 +31,8 @@ set ASM=NASM
 if exist %DOSDIR%\LINKS\%ASM%.BAT set ASM=call %ASM%
 :ASMset
 
-call %SELF% make QCRT
 call %SELF% make QASCIIZ
+call %SELF% make QCRT
 call %SELF% make QSTRINGS
 call %SELF% make QDOS
 call %SELF% make QEMS

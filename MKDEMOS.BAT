@@ -31,7 +31,8 @@ if not exist BIN\DEMO_004.EXE goto TPFailed
 
 rem Mouse Support
 :MouseTests
-SET OPTIONS=/DEnableMouse
+rem SET OPTIONS=/DEnableMouse
+SET OPTIONS=
 cd pascal
 call mkunits.bat
 cd ..

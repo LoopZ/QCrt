@@ -1,6 +1,10 @@
 {
-    Copyright 2019 Jerome Shidel
-    Released Under GPL v2.0 License.
+Copyright 1990-2021, Jerome Shidel
+Released Under Mozilla Public License 2.0
+
+This project and related files are subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this file, You
+can obtain one at http://mozilla.org/MPL/2.0/.
 }
 
 unit QStrings; { QuickCrt 9.x, Strings Unit }
@@ -12,14 +16,19 @@ interface
 type
 	PString = ^String;
 	Str2    = String[2];
+	Str3    = String[3];
 	Str4    = String[4];
 	Str5    = String[5];
 	Str8    = String[8];
-	Str12    = String[8];
+	Str9    = String[9];
+	Str12   = String[12];
 	Str16   = String[16];
 	Str20   = String[20];
 	Str32   = String[32];
 	Str40   = String[40];
+
+function CountStr(SubStr, Str : String) : integer;
+{ Returns total number of occurrences of SubStr within Str }
 
 function NextPos ( SubStr : String; S : String; StartPos : byte ) : byte;
 { Like Pos function, except starts searching at Startpos Byte. Uses Pos function. }
@@ -68,6 +77,7 @@ function HEXLong ( L : LongInt ) : Str8;
 function BINByte ( B : Byte ) : Str8;
 function BINWord ( W : Word ) : Str16;
 function BINLong ( L : LongInt ) : Str32;
+function HEXPtr (P : Pointer) : Str9;
 
 function BoolStr ( B : Boolean ) : Str5;
 { Returns True/False }
@@ -102,6 +112,8 @@ function FilterChar ( Str : String; C : Char ) : String;
 { removes matching characters from a string }
 function ReplaceChar ( Str : String; O, N : Char ) : String;
 { Replaces characters in a string }
+function ReplaceStr ( Str : String; O, N : String; All : Boolean ) : String;
+{ Replaces characters in a string }
 procedure AddChar ( var S : String; C : Char );
 { Adds Character to end of String }
 procedure AddStr ( var S1 : String; S2 : String );
@@ -115,6 +127,8 @@ function PullStr(SubStr : String; var S : String) : String;
 not present the entire string is "Pulled". SubStr is not returned in
 the result. }
 function PullChars(Count : Integer; var S : String) : String;
+function PullWord(var Str : String) : String;
+{ Returns "FirstWord", removing it and trimming Str }
 
 function ReduceStr(S : String; Max : integer) : String;
 
@@ -122,11 +136,29 @@ function  StrPtr(const S : String) : PString;
 function  PtrStr(const P : PString) : String;
 procedure FreeStr(var P : PString);
 
+function MatchWildCard ( AWild, AStr : String ) : boolean;
+
+procedure SetLength(var S; NewLen : byte);
+
+procedure HexDump(const D; L : word);
+
+function OnlyAlpha(S : String) : string;
+function OnlyAlphaNum(S : String) : string;
+function OnlyChars(S : String; Allowed : String) : string;
+function NotChars(S : String; Allowed : String) : string;
+
+function FlipStr(S : String) : string;
+
 implementation
 
 {$L QSTRINGS.OBJ}
 
 {----------------------------------------------------------------------------}
+    procedure SetLength(var S; NewLen : byte);
+    begin
+        Byte(S) := NewLen;
+    end;
+
   function UCase ( Str : String ) : String;
     begin
       asm
@@ -918,6 +950,206 @@ begin
 	end;
 
 	ReduceStr := Copy(UCase(S), 1, 8);
+end;
+
+function ReplaceStr ( Str : String; O, N : String;  All : boolean ) : String;
+var
+    P : integer;
+begin
+    P := Pos(O, Str);
+    while P > 0 do begin
+        Delete(Str, P, Length(O));
+        Insert(N, Str, P);
+        P :=NextPos(O, Str, P + Length(N));
+        if not All then Break;
+    end;
+    ReplaceStr := Str;
+end;
+
+function SubMatchWC(AWild, AStr :String) : boolean;
+var
+    I : Integer;
+begin
+    SubMatchWC:= False;
+    if Length(AWild) <> Length(AStr) then exit;
+    for I := 1 to Length(AWild) do
+        if (AWild[I] <> AStr[I]) and (AWild[I] <> '?') then exit;
+    SubMatchWC := True;
+end;
+
+function QPos(ASub, AStr : String) : integer;
+var
+    I : integer;
+begin
+    QPos := 0;
+    for I := 1 to Length(AStr) - Length(ASub) + 1 do
+        if SubMatchWC(ASub, Copy(AStr, I, Length(ASub))) then begin
+            QPos := I;
+            Break;
+        end;
+end;
+
+function MatchWildCard ( AWild, AStr : String ) : boolean;
+{ far from perfect, but good enough for now. :-) }
+var
+    PW, PS : integer;
+    X : integer;
+begin
+    X := 0;
+    MatchWildCard := True;
+    if AWild = AStr then Exit;
+    if AWild = '' then begin
+        MatchWildCard := False;
+        Exit;
+    end;
+    repeat
+        Inc(X);
+        if AWild[1] = '*' then begin
+            { WriteLn('[A-',AWild, '/',AStr,']'); }
+            While (AWild<> '') and (AWild[1] = '*') do Delete(AWild, 1,1);
+            if AWild = '' then Exit;
+            PW := Pos('*', AWild);
+            if PW < 1 then PW := Length(AWild)+ 1;
+            { WriteLn(PW, ';', Copy(AWild, 1, PW -1), ';', AStr); }
+            PS := QPos(Copy(AWild, 1, PW -1), AStr);
+            { WriteLn(PS); }
+            if PS < 1 then Break;
+            Delete(AStr, 1, PS - 1);
+        end;
+        { WriteLn('[B-',AWild, '/',AStr,']'); }
+        if SubMatchWC(AWild, AStr) then Exit;
+        PW := Pos('*', AWild) - 1;
+        { WriteLn(PW); }
+        if PW < 1 then PW := Length(AWild) + 1;
+        if not SubMatchWC(Copy(AWild,1, PW), Copy(AStr, 1, PW)) then Break;
+        Delete(AWild, 1, PW);
+        Delete(AStr, 1, PW);
+        { WriteLn('[C-',AWild, '/',AStr,']'); }
+    until (AWild = '') or (AStr = '') or (X = 1000);
+    { WriteLn('[D-',AWild, '/',AStr,']'); }
+    MatchWildCard := ((AWild = '*') or (AWild = '')) and (AStr = '');
+end;
+
+function CountStr(SubStr, Str : String) : integer;
+var
+    I, P : integer;
+begin
+    I := 0;
+    P := 1;
+    if SubStr <> '' then
+        While True do begin
+            P := NextPos(SubStr, Str, P);
+            if P > 0 then begin
+                Inc(I);
+                P := P + Length(SubStr);
+            end else
+                break;
+        end;
+    CountStr := I;
+end;
+
+procedure HexDump(const D; L : word);
+type
+    M = array[0..65534] of byte;
+var
+    I : word;
+begin
+    I := 0;
+    while I <= L do begin
+        Write(HEXbyte(M(D)[I]), ' ');
+        Inc(I);
+        if I mod $10 = 0 then WriteLn;
+
+    end;
+    if I mod $10 <> 0 then WriteLn;
+end;
+
+function OnlyAlpha(S : String) : string;
+var
+    I : integer;
+begin
+    I := 1;
+    while I <= Length(S) do begin
+        if ((S[I] >= 'a') and (S[I] <= 'z')) or
+        ((S[I] >= 'A') and (S[I] <= 'Z')) then
+            Inc(I)
+        else
+            Delete(S,I,1);
+    end;
+    OnlyAlpha := S;
+end;
+
+function OnlyAlphaNum(S : String) : string;
+var
+    I : integer;
+begin
+    I := 1;
+    while I <= Length(S) do begin
+        if ((S[I] >= 'a') and (S[I] <= 'z')) or
+        ((S[I] >= 'A') and (S[I] <= 'Z')) or
+        ((S[I] >= '0') and (S[I] <= '9')) then
+            Inc(I)
+        else
+            Delete(S,I,1);
+    end;
+    OnlyAlphaNum := S;
+end;
+
+function OnlyChars(S : String; Allowed : String) : string;
+var
+    I : integer;
+begin
+    I := 1;
+    while I <= Length(S) do begin
+        if (Pos(S[I], Allowed) > 0) then
+            Inc(I)
+        else
+            Delete(S,I,1);
+    end;
+    OnlyChars := S;
+end;
+
+function NotChars(S : String; Allowed : String) : string;
+var
+    I : integer;
+begin
+    I := 1;
+    while I <= Length(S) do begin
+        if (Pos(S[I], Allowed) = 0) then
+            Inc(I)
+        else
+            Delete(S,I,1);
+    end;
+    NotChars := S;
+end;
+
+function FlipStr(S : String) : string;
+var
+    I : integer;
+    C : Char;
+begin
+    for I := 1 to (Length(S) + 1) div 2 do begin
+        C := S[I];
+        S[I] := S[Length(S) - I + 1];
+        S[Length(S) - I + 1] := C;
+    end;
+    FlipStr:=S;
+
+end;
+
+function PullWord(var Str : String) : String;
+var
+   S : String;
+begin
+    S := FirstWord(Str);
+    Delete(Str, 1, Length(S));
+    PullWord := Trim(S);
+    Str := Trim(Str);
+end;
+
+function HEXPtr (P : Pointer) : Str9;
+begin
+    HexPtr := HexWord(Seg(P^)) + ':' + HexWord(Ofs(P^));
 end;
 
 end.
